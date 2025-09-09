@@ -6,7 +6,6 @@ import json
 
 DRIVERS_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "drivers.json")
 
-
 # --- Funções utilitárias ---
 def run_cmd(cmd):
     try:
@@ -14,24 +13,19 @@ def run_cmd(cmd):
     except subprocess.CalledProcessError as e:
         return e.output.decode('utf-8').strip()
 
-
 # --- Detecção robusta de hardware ---
 def detect_hardware():
     print("Detectando hardware...")
     pci_output = run_cmd("lspci -nnk")
     usb_output = run_cmd("lsusb")
 
-    # Keywords Wi-Fi
     wifi_keywords = ["Wireless", "Network controller", "Wi-Fi", "WLAN",
                      "RTL8811AU", "AC600", "RTL8188", "RTL8192", "Realtek"]
-    # Keywords Bluetooth
     bt_keywords = ["Bluetooth", "BT", "BlueZ"]
 
-    # Wi-Fi
     wifi_hw = [line for line in pci_output.splitlines() if any(k.lower() in line.lower() for k in wifi_keywords)]
     wifi_hw += [line for line in usb_output.splitlines() if any(k.lower() in line.lower() for k in wifi_keywords)]
 
-    # Bluetooth
     bt_hw = [line for line in pci_output.splitlines() if any(k.lower() in line.lower() for k in bt_keywords)]
     bt_hw += [line for line in usb_output.splitlines() if any(k.lower() in line.lower() for k in bt_keywords)]
 
@@ -39,17 +33,19 @@ def detect_hardware():
     print(f"Bluetooth detectado: {bt_hw if bt_hw else 'Nenhum'}")
     return wifi_hw, bt_hw
 
-
 # --- Drivers ---
 def is_driver_loaded(module):
-    return module in run_cmd("lsmod")
-
-
-def driver_exists(module):
-    """Verifica se o módulo já existe no sistema (mesmo não estando carregado)."""
-    output = run_cmd(f"modinfo {module}")
-    return "filename:" in output
-
+    # Checa se está carregado no kernel
+    if module in run_cmd("lsmod"):
+        return True
+    # Checa se o módulo existe nos drivers do kernel
+    kernel_version = run_cmd("uname -r")
+    driver_path = f"/lib/modules/{kernel_version}/kernel/drivers/"
+    for root, dirs, files in os.walk(driver_path):
+        for file in files:
+            if file.startswith(module):
+                return True
+    return False
 
 def install_driver(repo, module):
     tmp_dir = "/tmp/mei_driver"
@@ -68,7 +64,6 @@ def install_driver(repo, module):
         print("Makefile não encontrado. Instale manualmente.")
     run_cmd(f"rm -rf {tmp_dir}")
 
-
 def identify_fabricante(hw_list):
     for line in hw_list:
         if "Realtek" in line:
@@ -78,7 +73,6 @@ def identify_fabricante(hw_list):
         elif "Broadcom" in line:
             return "Broadcom"
     return "Generic"
-
 
 # --- CLI ---
 def main():
@@ -101,20 +95,14 @@ def main():
             fab = identify_fabricante(wifi_hw)
             driver_info = drivers["wifi"].get(fab, drivers["wifi"]["Generic"])
             module = driver_info["module"]
-
             if is_driver_loaded(module):
-                print(f"Driver Wi-Fi ({module}) já carregado")
-            elif driver_exists(module):
-                print(f"Driver Wi-Fi ({module}) já está instalado, mas não carregado")
-                load = input("Deseja carregar agora? [S/n]: ").strip().lower() or "s"
-                if load == "s":
-                    run_cmd(f"sudo modprobe {module}")
-                    print(f"Driver {module} carregado!")
+                print(f"Driver Wi-Fi ({module}) já instalado/carregado")
             else:
-                install = input(f"O driver {module} para Wi-Fi não está instalado. Deseja instalar? [S/n]: ").strip().lower() or "s"
-                if install == "s":
+                resp = input(f"O driver {module} para Wi-Fi não está carregado. Deseja instalar? [S/n]: ").strip().lower()
+                if resp in ["s", "sim", ""]:
                     install_driver(driver_info["repo"], module)
-
+                else:
+                    print("Instalação de Wi-Fi cancelada pelo usuário.")
         elif t == "bluetooth":
             if not bt_hw:
                 print("Nenhum Bluetooth detectado")
@@ -122,22 +110,16 @@ def main():
             fab = identify_fabricante(bt_hw)
             driver_info = drivers["bluetooth"].get(fab, drivers["bluetooth"]["Generic"])
             module = driver_info["module"]
-
             if is_driver_loaded(module):
-                print(f"Driver Bluetooth ({module}) já carregado")
-            elif driver_exists(module):
-                print(f"Driver Bluetooth ({module}) já está instalado, mas não carregado")
-                load = input("Deseja carregar agora? [S/n]: ").strip().lower() or "s"
-                if load == "s":
-                    run_cmd(f"sudo modprobe {module}")
-                    print(f"Driver {module} carregado!")
+                print(f"Driver Bluetooth ({module}) já instalado/carregado")
             else:
-                install = input(f"O driver {module} para Bluetooth não está instalado. Deseja instalar? [S/n]: ").strip().lower() or "s"
-                if install == "s":
+                resp = input(f"O driver {module} para Bluetooth não está carregado. Deseja instalar? [S/n]: ").strip().lower()
+                if resp in ["s", "sim", ""]:
                     install_driver(driver_info["repo"], module)
+                else:
+                    print("Instalação de Bluetooth cancelada pelo usuário.")
         else:
             print(f"Tipo de driver desconhecido: {t}")
-
 
 if __name__ == "__main__":
     main()
