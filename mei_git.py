@@ -6,7 +6,6 @@ import json
 
 DRIVERS_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "drivers.json")
 
-
 # --- Funções utilitárias ---
 def run_cmd(cmd):
     try:
@@ -20,17 +19,13 @@ def detect_hardware():
     pci_output = run_cmd("lspci -nnk")
     usb_output = run_cmd("lsusb")
 
-    # Keywords Wi-Fi
     wifi_keywords = ["Wireless", "Network controller", "Wi-Fi", "WLAN",
                      "RTL8811AU", "AC600", "RTL8188", "RTL8192", "Realtek"]
-    # Keywords Bluetooth
     bt_keywords = ["Bluetooth", "BT", "BlueZ"]
 
-    # Wi-Fi
     wifi_hw = [line for line in pci_output.splitlines() if any(k.lower() in line.lower() for k in wifi_keywords)]
     wifi_hw += [line for line in usb_output.splitlines() if any(k.lower() in line.lower() for k in wifi_keywords)]
 
-    # Bluetooth
     bt_hw = [line for line in pci_output.splitlines() if any(k.lower() in line.lower() for k in bt_keywords)]
     bt_hw += [line for line in usb_output.splitlines() if any(k.lower() in line.lower() for k in bt_keywords)]
 
@@ -41,6 +36,15 @@ def detect_hardware():
 # --- Drivers ---
 def is_driver_loaded(module):
     return module in run_cmd("lsmod")
+
+def is_driver_installed(module):
+    """Verifica se o módulo está instalado no sistema"""
+    kernel_ver = run_cmd("uname -r")
+    mod_path = f"/lib/modules/{kernel_ver}/kernel/drivers"
+    for root, dirs, files in os.walk(mod_path):
+        if f"{module}.ko" in files:
+            return True
+    return False
 
 def install_driver(repo, module):
     tmp_dir = "/tmp/mei_driver"
@@ -72,13 +76,16 @@ def identify_fabricante(hw_list):
 # --- CLI ---
 def main():
     if len(sys.argv) < 3 or sys.argv[1] != "install":
-        print("Uso: mei-git install [wifi|bluetooth]")
+        print("Uso: mei-git install [wifi|bluetooth] [--force]")
         sys.exit(1)
 
     targets = sys.argv[2:]
+    force_install = "--force" in targets
+    if force_install:
+        targets.remove("--force")
+
     wifi_hw, bt_hw = detect_hardware()
 
-    # Carrega drivers
     with open(DRIVERS_FILE) as f:
         drivers = json.load(f)
 
@@ -88,21 +95,30 @@ def main():
                 print("Nenhum Wi-Fi detectado")
                 continue
             fab = identify_fabricante(wifi_hw)
-            module = drivers["wifi"].get(fab, drivers["wifi"]["Generic"])["module"]
-            if is_driver_loaded(module):
+            driver_info = drivers["wifi"].get(fab, drivers["wifi"]["Generic"])
+            module = driver_info["module"]
+
+            if is_driver_loaded(module) and not force_install:
                 print(f"Driver Wi-Fi ({module}) já carregado")
+            elif is_driver_installed(module) and not force_install:
+                print(f"Driver Wi-Fi ({module}) já instalado, mas não está carregado")
             else:
-                install_driver(drivers["wifi"].get(fab, drivers["wifi"]["Generic"])["repo"], module)
+                install_driver(driver_info["repo"], module)
+
         elif t == "bluetooth":
             if not bt_hw:
                 print("Nenhum Bluetooth detectado")
                 continue
             fab = identify_fabricante(bt_hw)
-            module = drivers["bluetooth"].get(fab, drivers["bluetooth"]["Generic"])["module"]
-            if is_driver_loaded(module):
+            driver_info = drivers["bluetooth"].get(fab, drivers["bluetooth"]["Generic"])
+            module = driver_info["module"]
+
+            if is_driver_loaded(module) and not force_install:
                 print(f"Driver Bluetooth ({module}) já carregado")
+            elif is_driver_installed(module) and not force_install:
+                print(f"Driver Bluetooth ({module}) já instalado, mas não está carregado")
             else:
-                install_driver(drivers["bluetooth"].get(fab, drivers["bluetooth"]["Generic"])["repo"], module)
+                install_driver(driver_info["repo"], module)
         else:
             print(f"Tipo de driver desconhecido: {t}")
 
