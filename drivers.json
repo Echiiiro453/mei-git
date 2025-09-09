@@ -1,39 +1,38 @@
 {
-    "wifi": {
-        "Realtek": {
-            "module": "rtl8811au",
-            "repo": "https://github.com/aircrack-ng/rtl8812au.git"
-        },
-        "Intel": {
-            "module": "iwlwifi",
-            "repo": ""
-        },
-        "Broadcom": {
-            "module": "bcmwl-kernel-source",
-            "repo": ""
-        },
-        "Generic": {
-            "module": "wifi_generic",
-            "repo": ""
-        }
+  "wifi": {
+    "Realtek": {
+      "module": "rtl8811au",
+      "repo": "https://github.com/aircrack-ng/rtl8812au.git"
     },
-    "bluetooth": {
-        "Realtek": {
-            "module": "bt_realtek",
-            "repo": "https://github.com/lwfinger/rtl8723bu.git"
-        },
-        "Intel": {
-            "module": "btintel",
-            "repo": ""
-        },
-        "Broadcom": {
-            "module": "bt_broadcom",
-            "repo": ""
-        },
-        "Generic": {
-            "module": "bt_generic",
-            "repo": ""
-        }
+    "Intel": {
+      "module": "iwlwifi",
+      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/iwlwifi/backport-iwlwifi.git"
+    },
+    "Broadcom": {
+      "module": "broadcom-wl",
+      "repo": "https://github.com/RadeonOpenCompute/ROCm-dkms.git"
+    },
+    "Generic": {
+      "module": "generic-wifi",
+      "repo": "https://github.com/lwfinger/rtlwifi_new.git"
     }
+  },
+  "bluetooth": {
+    "Realtek": {
+      "module": "btusb",
+      "repo": "https://github.com/lwfinger/rtl_bt.git"
+    },
+    "Intel": {
+      "module": "btintel",
+      "repo": "https://git.kernel.org/pub/scm/bluetooth/bluez.git"
+    },
+    "Broadcom": {
+      "module": "btbcm",
+      "repo": "https://github.com/pritambaral/broadcom-bt.git"
+    },
+    "Generic": {
+      "module": "btusb",
+      "repo": "https://github.com/bluez/bluez.git"
+    }
+  }
 }
-
