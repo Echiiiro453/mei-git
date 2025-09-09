@@ -1,0 +1,22 @@
+{
+  "wifi": {
+    "Realtek": {
+      "module": "rtl8723be",
+      "repo": "https://github.com/lwfinger/rtlwifi_new.git"
+    },
+    "Intel": {
+      "module": "iwlwifi",
+      "repo": "https://github.com/lwfinger/iwlwifi.git"
+    },
+    "Broadcom": {
+      "module": "bcmwl",
+      "repo": "https://github.com/your-broadcom-driver.git"
+    }
+  },
+  "bluetooth": {
+    "Generic": {
+      "module": "btusb",
+      "repo": "https://github.com/lwfinger/bluetooth.git"
+    }
+  }
+}
