@@ -13,52 +13,42 @@ O **MEI Git** detecta seu hardware, identifica o fabricante e instala o driver c
 * Baixa o driver correto diretamente do GitHub.
 * Compila e instala automaticamente.
 * Limpa arquivos temporários pós-instalação.
+* Checa se o driver já está carregado antes de tentar instalar.
+* Pergunta ao usuário antes de instalar qualquer driver.
 
 ---
 
-## ⚙️ Instalação
-
-1. **Clone o repositório:**
+## ⚙️ Instalação e Setup Completo (Copy/Paste Ready)
 
 ```bash
-git clone https://github.com/Echiiiro453/mei-git.git
-cd mei-git
-```
+# Clone o repositório e entre na pasta
+git clone https://github.com/Echiiiro453/mei-git.git && cd mei-git
 
-2. **Torne os scripts executáveis:**
-
-```bash
+# Torne os scripts executáveis
 chmod +x mei_git.py setup.sh
-```
 
-3. **Instale dependências do sistema:**
-
-```bash
+# Instale dependências do sistema
 sudo ./setup.sh
-```
 
-4. **Crie o link global para rodar o comando de qualquer lugar:**
-
-```bash
+# Crie link global para rodar de qualquer lugar
 sudo ln -sf $(pwd)/mei_git.py /usr/local/bin/mei-git
+
+# Teste a instalação: instale Wi-Fi e Bluetooth
+mei-git install wifi bluetooth
 ```
 
 ---
 
 ## 🚀 Uso
 
-Instale Wi-Fi e Bluetooth com um comando:
-
-```bash
-mei-git install wifi bluetooth
-```
-
-Verifique apenas Wi-Fi ou Bluetooth:
+Instale apenas Wi-Fi ou apenas Bluetooth:
 
 ```bash
 mei-git install wifi
 mei-git install bluetooth
 ```
+
+O script detecta o hardware, checa se o driver já está carregado e pergunta antes de instalar.
 
 ---
 
@@ -76,6 +66,45 @@ mei-git/
 
 ## 📝 Observações
 
-* Certifique-se de rodar com **permissões sudo** quando instalar drivers.
-* Suporta apenas Linux (testado em distribuições baseadas em Debian/Ubuntu).
-* Recomendado usar uma conexão com internet estável, pois os drivers são baixados do GitHub.
+* Use **sudo** ao instalar drivers.
+* Suporta Linux (Debian/Ubuntu testado; adaptações podem ser necessárias para outras distros).
+* Conexão com internet estável necessária.
+* Se o driver já estiver instalado ou carregado, o script informa e pede confirmação antes de reinstalar.
+
+---
+
+## 🛠️ Suporte a Dispositivos
+
+| Tipo de Dispositivo | Fabricantes Suportados            | Exemplo de Driver/Repo      |
+| ------------------- | --------------------------------- | --------------------------- |
+| Wi-Fi USB/Pci       | Intel, Realtek, Broadcom, Generic | rtl8811au, rtl8188, iwlwifi |
+| Bluetooth USB/Pci   | Intel, Realtek, Broadcom, Generic | btusb, broadcom bt          |
+| Ethernet (extra)    | Realtek, Intel                    | r8168, e1000e               |
+
+*(Lista de drivers no `drivers.json`, expansível)*
+
+---
+
+## 💡 Roadmap / Próximos Recursos
+
+* Suporte multi-distro completo (Arch, Fedora, OpenSUSE).
+* Verificação de repositório ativo antes de clonar.
+* Logging detalhado de instalação.
+* Adição de drivers adicionais (mais Realtek, Intel, Broadcom).
+* Integração com GUI para usuários menos familiarizados com terminal.
+
+---
+
+## 📌 Contribuindo
+
+1. Fork o projeto.
+2. Crie uma branch: `git checkout -b minha-feature`.
+3. Commit suas alterações: `git commit -m "Minha contribuição"`.
+4. Push: `git push origin minha-feature`.
+5. Abra Pull Request.
+
+---
+
+## ⚠️ Licença
+
+MIT License — consulte o arquivo `LICENSE` no repositório.
