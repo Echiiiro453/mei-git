@@ -4,8 +4,8 @@ import os
 import sys
 import json
 
-# Caminho absoluto do drivers.json
 DRIVERS_FILE = os.path.join(os.path.dirname(os.path.realpath(__file__)), "drivers.json")
+
 
 # --- Funções utilitárias ---
 def run_cmd(cmd):
@@ -13,6 +13,7 @@ def run_cmd(cmd):
         return subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('utf-8').strip()
     except subprocess.CalledProcessError as e:
         return e.output.decode('utf-8').strip()
+
 
 # --- Detecção robusta de hardware ---
 def detect_hardware():
@@ -38,9 +39,17 @@ def detect_hardware():
     print(f"Bluetooth detectado: {bt_hw if bt_hw else 'Nenhum'}")
     return wifi_hw, bt_hw
 
+
 # --- Drivers ---
 def is_driver_loaded(module):
     return module in run_cmd("lsmod")
+
+
+def driver_exists(module):
+    """Verifica se o módulo já existe no sistema (mesmo não estando carregado)."""
+    output = run_cmd(f"modinfo {module}")
+    return "filename:" in output
+
 
 def install_driver(repo, module):
     tmp_dir = "/tmp/mei_driver"
@@ -59,6 +68,7 @@ def install_driver(repo, module):
         print("Makefile não encontrado. Instale manualmente.")
     run_cmd(f"rm -rf {tmp_dir}")
 
+
 def identify_fabricante(hw_list):
     for line in hw_list:
         if "Realtek" in line:
@@ -69,15 +79,6 @@ def identify_fabricante(hw_list):
             return "Broadcom"
     return "Generic"
 
-def confirm_installation(hw_type, module):
-    while True:
-        resp = input(f"O driver {module} para {hw_type} não está carregado. Deseja instalar? [S/n]: ").strip().lower()
-        if resp in ["s", "sim", ""]:
-            return True
-        elif resp in ["n", "não", "nao"]:
-            return False
-        else:
-            print("Resposta inválida. Digite S para sim ou N para não.")
 
 # --- CLI ---
 def main():
@@ -100,13 +101,20 @@ def main():
             fab = identify_fabricante(wifi_hw)
             driver_info = drivers["wifi"].get(fab, drivers["wifi"]["Generic"])
             module = driver_info["module"]
+
             if is_driver_loaded(module):
                 print(f"Driver Wi-Fi ({module}) já carregado")
+            elif driver_exists(module):
+                print(f"Driver Wi-Fi ({module}) já está instalado, mas não carregado")
+                load = input("Deseja carregar agora? [S/n]: ").strip().lower() or "s"
+                if load == "s":
+                    run_cmd(f"sudo modprobe {module}")
+                    print(f"Driver {module} carregado!")
             else:
-                if confirm_installation("Wi-Fi", module):
+                install = input(f"O driver {module} para Wi-Fi não está instalado. Deseja instalar? [S/n]: ").strip().lower() or "s"
+                if install == "s":
                     install_driver(driver_info["repo"], module)
-                else:
-                    print(f"Pulo da instalação do driver {module}")
+
         elif t == "bluetooth":
             if not bt_hw:
                 print("Nenhum Bluetooth detectado")
@@ -114,17 +122,23 @@ def main():
             fab = identify_fabricante(bt_hw)
             driver_info = drivers["bluetooth"].get(fab, drivers["bluetooth"]["Generic"])
             module = driver_info["module"]
+
             if is_driver_loaded(module):
                 print(f"Driver Bluetooth ({module}) já carregado")
+            elif driver_exists(module):
+                print(f"Driver Bluetooth ({module}) já está instalado, mas não carregado")
+                load = input("Deseja carregar agora? [S/n]: ").strip().lower() or "s"
+                if load == "s":
+                    run_cmd(f"sudo modprobe {module}")
+                    print(f"Driver {module} carregado!")
             else:
-                if confirm_installation("Bluetooth", module):
+                install = input(f"O driver {module} para Bluetooth não está instalado. Deseja instalar? [S/n]: ").strip().lower() or "s"
+                if install == "s":
                     install_driver(driver_info["repo"], module)
-                else:
-                    print(f"Pulo da instalação do driver {module}")
         else:
             print(f"Tipo de driver desconhecido: {t}")
 
+
 if __name__ == "__main__":
     main()
-
 
