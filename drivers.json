@@ -34,5 +34,92 @@
       "module": "btusb",
       "repo": "https://github.com/bluez/bluez.git"
     }
+  },
+  "ethernet": {
+    "Realtek": {
+      "module": "r8169",
+      "repo": "https://github.com/mtorromeo/r8168.git"
+    },
+    "Intel": {
+      "module": "e1000e",
+      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+    },
+    "Broadcom": {
+      "module": "tg3",
+      "repo": "https://github.com/Broadcom-Network-Drivers/bnx2x.git"
+    },
+    "Generic": {
+      "module": "generic-ethernet",
+      "repo": "https://github.com/openwrt/openwrt.git"
+    }
+  },
+  "printer": {
+    "HP": {
+      "module": "hplip",
+      "repo": "https://github.com/hp-hplip/hplip.git"
+    },
+    "Epson": {
+      "module": "epson-inkjet",
+      "repo": "https://github.com/epson/epson-inkjet-printer-escpr.git"
+    },
+    "Brother": {
+      "module": "brscan",
+      "repo": "https://github.com/brolive/brother-drivers.git"
+    },
+    "Generic": {
+      "module": "cups",
+      "repo": "https://github.com/OpenPrinting/cups.git"
+    }
+  },
+  "video": {
+    "NVIDIA": {
+      "module": "nvidia",
+      "repo": "https://github.com/NVIDIA/nvidia-driver.git"
+    },
+    "AMD": {
+      "module": "amdgpu",
+      "repo": "https://gitlab.freedesktop.org/drm/amd.git"
+    },
+    "Intel": {
+      "module": "i915",
+      "repo": "https://gitlab.freedesktop.org/drm/intel.git"
+    },
+    "Generic": {
+      "module": "vesa",
+      "repo": "https://gitlab.freedesktop.org/xorg/driver/xf86-video-vesa.git"
+    }
+  },
+  "audio": {
+    "Realtek": {
+      "module": "snd_hda_intel",
+      "repo": "https://github.com/alsa-project/alsa-driver.git"
+    },
+    "Intel": {
+      "module": "snd_hda_intel",
+      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/tiwai/sound.git"
+    },
+    "Generic": {
+      "module": "alsa",
+      "repo": "https://github.com/alsa-project/alsa-lib.git"
+    }
+  },
+  "usb": {
+    "Webcam": {
+      "module": "uvcvideo",
+      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+    },
+    "Storage": {
+      "module": "usb-storage",
+      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+    },
+    "MTP": {
+      "module": "mtp",
+      "repo": "https://github.com/libmtp/libmtp.git"
+    },
+    "Generic": {
+      "module": "usbcore",
+      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+    }
   }
 }
+
