@@ -1,44 +1,43 @@
 #!/usr/bin/env bash
-# MEI Git - setup.sh
-# Script de setup universal para instalar dependências em múltiplas distros
 
 set -e
 
-echo "🔎 Detectando distribuição Linux..."
+echo "🔍 Detectando distribuição Linux..."
 
 if [ -f /etc/os-release ]; then
     . /etc/os-release
     DISTRO=$ID
 else
-    echo "❌ Não foi possível detectar a distribuição."
+    echo "❌ Não consegui identificar a distro."
     exit 1
 fi
 
-echo "➡️ Distro detectada: $DISTRO"
+echo "📌 Distro detectada: $DISTRO"
+echo "⚙️ Instalando dependências..."
 
-install_pkg() {
-    case "$DISTRO" in
-        ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y "$@"
-            ;;
-        fedora|rhel|centos)
-            sudo dnf install -y "$@"
-            ;;
-        arch)
-            sudo pacman -Sy --noconfirm "$@"
-            ;;
-        opensuse*|suse)
-            sudo zypper install -y "$@"
-            ;;
-        *)
-            echo "⚠️ Distro não suportada automaticamente. Instale manualmente: $@"
-            ;;
-    esac
-}
+case "$DISTRO" in
+    arch|manjaro)
+        sudo pacman -Syu --noconfirm
+        sudo pacman -S --needed --noconfirm base-devel dkms linux-headers git
+        ;;
+    ubuntu|debian|linuxmint|pop)
+        sudo apt update
+        sudo apt install -y build-essential dkms linux-headers-$(uname -r) git
+        ;;
+    fedora)
+        sudo dnf install -y @development-tools dkms kernel-devel kernel-headers git
+        ;;
+    opensuse*|suse)
+        sudo zypper install -y -t pattern devel_basis
+        sudo zypper install -y dkms kernel-devel kernel-default-devel git
+        ;;
+    *)
+        echo "⚠️ Distro $DISTRO não suportada automaticamente."
+        echo "👉 Instale manualmente: compilador (gcc, make), dkms, linux-headers, git."
+        ;;
+esac
 
-echo "📦 Instalando dependências..."
-install_pkg git make build-essential dkms linux-headers-$(uname -r) usbutils pciutils
+echo "✅ Dependências instaladas com sucesso!"
+echo "Agora você pode rodar: python mei_git.py install [wifi|bluetooth|ethernet|audio|video]"
 
-echo "✅ Setup finalizado com sucesso!"
 
