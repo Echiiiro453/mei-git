@@ -1,54 +1,75 @@
 # MEI Git
 
-**CLI Linux para instalação automática de drivers Wi-Fi e Bluetooth.**
+**CLI Linux para instalação automática de drivers Wi-Fi, Bluetooth, vídeo, áudio e periféricos.**
 
-O **MEI Git** detecta seu hardware, identifica o fabricante e instala o driver correto, tudo de forma automatizada. Ideal para notebooks e desktops Linux — esqueça a dor de cabeça de compilar drivers manualmente.
+O **MEI Git** detecta seu hardware, identifica fabricante e modelo, e instala o driver correto — tudo de forma automatizada.  
+Compatível com múltiplas distribuições Linux. Ideal para notebooks e desktops.
 
 ---
 
 ## 🔧 Funcionalidades
 
-* Detecta automaticamente dispositivos Wi-Fi e Bluetooth.
-* Identifica fabricantes: **Intel**, **Realtek**, **Broadcom** ou **Generic**.
-* Baixa o driver correto diretamente do GitHub.
-* Compila e instala automaticamente.
-* Limpa arquivos temporários pós-instalação.
-* Checa se o driver já está carregado antes de tentar instalar.
-* Pergunta ao usuário antes de instalar qualquer driver.
+- Detecta dispositivos **Wi-Fi, Bluetooth, Vídeo, Áudio e USB** automaticamente.  
+- Identifica fabricantes: **Intel, Realtek, Broadcom, NVIDIA, AMD** etc.  
+- Baixa o driver correto diretamente do GitHub.  
+- Compila e instala automaticamente com **DKMS**.  
+- Checagem inteligente: detecta se o driver já está carregado no sistema.  
+- Logs em `/var/log/mei-git.log`.  
 
 ---
 
-## ⚙️ Instalação e Setup Completo (Copy/Paste Ready)
+## ⚙️ Instalação
+
+Copie e cole os comandos abaixo no terminal:
 
 ```bash
-# Clone o repositório e entre na pasta
-git clone https://github.com/Echiiiro453/mei-git.git && cd mei-git
+# Clone o repositório
+git clone https://github.com/Echiiiro453/mei-git.git
+cd mei-git
 
 # Torne os scripts executáveis
 chmod +x mei_git.py setup.sh
 
-# Instale dependências do sistema
+# Rode o setup para instalar dependências (multi-distro)
 sudo ./setup.sh
 
-# Crie link global para rodar de qualquer lugar
+# Crie o link global para rodar de qualquer lugar
 sudo ln -sf $(pwd)/mei_git.py /usr/local/bin/mei-git
-
-# Teste a instalação: instale Wi-Fi e Bluetooth
-mei-git install wifi bluetooth
 ```
 
 ---
 
 ## 🚀 Uso
 
-Instale apenas Wi-Fi ou apenas Bluetooth:
+Instalar Wi-Fi e Bluetooth:
+
+```bash
+mei-git install wifi bluetooth
+```
+
+Instalar apenas Wi-Fi:
 
 ```bash
 mei-git install wifi
+```
+
+Instalar apenas Bluetooth:
+
+```bash
 mei-git install bluetooth
 ```
 
-O script detecta o hardware, checa se o driver já está carregado e pergunta antes de instalar.
+Checar drivers detectados sem instalar:
+
+```bash
+mei-git --check
+```
+
+Instalar tudo automaticamente (sem perguntas):
+
+```bash
+mei-git --auto
+```
 
 ---
 
@@ -58,53 +79,34 @@ O script detecta o hardware, checa se o driver já está carregado e pergunta an
 mei-git/
 ├── mei_git.py       # Script principal
 ├── drivers.json     # Lista de drivers e repositórios
-├── setup.sh         # Instala dependências do sistema
-└── README.md        # Este arquivo
+├── setup.sh         # Instala dependências multi-distro
+└── README.md        # Documentação
 ```
 
 ---
 
 ## 📝 Observações
 
-* Use **sudo** ao instalar drivers.
-* Suporta Linux (Debian/Ubuntu testado; adaptações podem ser necessárias para outras distros).
-* Conexão com internet estável necessária.
-* Se o driver já estiver instalado ou carregado, o script informa e pede confirmação antes de reinstalar.
+- Requer **sudo** para instalar drivers.  
+- Compatível com:  
+  - **Debian/Ubuntu** (apt)  
+  - **Fedora/RHEL** (dnf)  
+  - **Arch Linux** (pacman)  
+  - **openSUSE** (zypper)  
+- Recomendado usar internet estável (os drivers são baixados do GitHub).  
+- Testado em kernel Linux 5.x e 6.x.  
 
 ---
 
-## 🛠️ Suporte a Dispositivos
+## 📌 Roadmap
 
-| Tipo de Dispositivo | Fabricantes Suportados            | Exemplo de Driver/Repo      |
-| ------------------- | --------------------------------- | --------------------------- |
-| Wi-Fi USB/Pci       | Intel, Realtek, Broadcom, Generic | rtl8811au, rtl8188, iwlwifi |
-| Bluetooth USB/Pci   | Intel, Realtek, Broadcom, Generic | btusb, broadcom bt          |
-| Ethernet (extra)    | Realtek, Intel                    | r8168, e1000e               |
-
-*(Lista de drivers no `drivers.json`, expansível)*
+- [x] Suporte multi-distro  
+- [x] Checagem inteligente de drivers já instalados  
+- [x] Confirmação antes de instalar  
+- [ ] Expansão para vídeo, áudio e impressoras  
+- [ ] Releases com pacotes `.deb` e `.rpm`  
 
 ---
 
-## 💡 Roadmap / Próximos Recursos
-
-* Suporte multi-distro completo (Arch, Fedora, OpenSUSE).
-* Verificação de repositório ativo antes de clonar.
-* Logging detalhado de instalação.
-* Adição de drivers adicionais (mais Realtek, Intel, Broadcom).
-* Integração com GUI para usuários menos familiarizados com terminal.
-
----
-
-## 📌 Contribuindo
-
-1. Fork o projeto.
-2. Crie uma branch: `git checkout -b minha-feature`.
-3. Commit suas alterações: `git commit -m "Minha contribuição"`.
-4. Push: `git push origin minha-feature`.
-5. Abra Pull Request.
-
----
-
-## ⚠️ Licença
-
-MIT License — consulte o arquivo `LICENSE` no repositório.
+👨‍💻 Autor: **Marcondes (Andrey)**  
+📦 Repo oficial: [MEI Git](https://github.com/Echiiiro453/mei-git)  
