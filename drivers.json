@@ -1,125 +1,75 @@
 {
   "wifi": {
-    "Realtek": {
-      "module": "rtl8811au",
-      "repo": "https://github.com/aircrack-ng/rtl8812au.git"
+    "Realtek_RTL8812AU_8821AU": {
+      "device_ids": ["0bda:8812", "0bda:a811", "0bda:881a", "0bda:8811"],
+      "type": "git",
+      "repo": "https://github.com/aircrack-ng/rtl8812au.git",
+      "module": "8812au",
+      "dependencies": ["dkms", "build-essential", "linux-headers-$(uname -r)"],
+      "build_steps": [
+        "sudo make dkms_install"
+      ],
+      "comment": "Driver popular para adaptadores Wi-Fi AC. Essencial para auditoria de redes."
     },
-    "Intel": {
-      "module": "iwlwifi",
-      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/iwlwifi/backport-iwlwifi.git"
+    "Realtek_RTL8188EU": {
+      "device_ids": ["0bda:8179", "0bda:0179"],
+      "type": "git",
+      "repo": "https://github.com/lwfinger/rtl8188eu.git",
+      "module": "8188eu",
+      "dependencies": ["git", "dkms", "build-essential"],
+      "build_steps": [
+        "sudo make all",
+        "sudo make install"
+      ],
+      "comment": "Para muitos dongles Wi-Fi N baratos e notebooks mais antigos."
     },
-    "Broadcom": {
-      "module": "broadcom-wl",
-      "repo": "https://github.com/RadeonOpenCompute/ROCm-dkms.git"
-    },
-    "Generic": {
-      "module": "generic-wifi",
-      "repo": "https://github.com/lwfinger/rtlwifi_new.git"
-    }
-  },
-  "bluetooth": {
-    "Realtek": {
-      "module": "btusb",
-      "repo": "https://github.com/lwfinger/rtl_bt.git"
-    },
-    "Intel": {
-      "module": "btintel",
-      "repo": "https://git.kernel.org/pub/scm/bluetooth/bluez.git"
-    },
-    "Broadcom": {
-      "module": "btbcm",
-      "repo": "https://github.com/pritambaral/broadcom-bt.git"
-    },
-    "Generic": {
-      "module": "btusb",
-      "repo": "https://github.com/bluez/bluez.git"
-    }
-  },
-  "ethernet": {
-    "Realtek": {
-      "module": "r8169",
-      "repo": "https://github.com/mtorromeo/r8168.git"
-    },
-    "Intel": {
-      "module": "e1000e",
-      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
-    },
-    "Broadcom": {
-      "module": "tg3",
-      "repo": "https://github.com/Broadcom-Network-Drivers/bnx2x.git"
-    },
-    "Generic": {
-      "module": "generic-ethernet",
-      "repo": "https://github.com/openwrt/openwrt.git"
-    }
-  },
-  "printer": {
-    "HP": {
-      "module": "hplip",
-      "repo": "https://github.com/hp-hplip/hplip.git"
-    },
-    "Epson": {
-      "module": "epson-inkjet",
-      "repo": "https://github.com/epson/epson-inkjet-printer-escpr.git"
-    },
-    "Brother": {
-      "module": "brscan",
-      "repo": "https://github.com/brolive/brother-drivers.git"
-    },
-    "Generic": {
-      "module": "cups",
-      "repo": "https://github.com/OpenPrinting/cups.git"
+    "Broadcom_BCM43xx_STA": {
+      "device_ids": ["14e4:43a0", "14e4:43c3", "14e4:43b1"],
+      "module": "wl",
+      "type": "apt",
+      "package": "broadcom-sta-dkms",
+      "dependencies": ["broadcom-sta-dkms"],
+      "comment": "O infame driver proprietário da Broadcom necessário para muitos MacBooks e notebooks Dell/HP."
     }
   },
   "video": {
-    "NVIDIA": {
+    "NVIDIA_Legacy_340": {
+      "device_ids": ["10de:0fdf", "10de:104a", "10de:0649"],
+      "type": "git",
+      "repo": "https://github.com/mei-git/NVIDIA-Linux-x86_64-340.108-patched.git",
       "module": "nvidia",
-      "repo": "https://github.com/NVIDIA/nvidia-driver.git"
-    },
-    "AMD": {
-      "module": "amdgpu",
-      "repo": "https://gitlab.freedesktop.org/drm/amd.git"
-    },
-    "Intel": {
-      "module": "i915",
-      "repo": "https://gitlab.freedesktop.org/drm/intel.git"
-    },
-    "Generic": {
-      "module": "vesa",
-      "repo": "https://gitlab.freedesktop.org/xorg/driver/xf86-video-vesa.git"
+      "dependencies": ["dkms", "build-essential", "linux-headers-$(uname -r)"],
+      "build_steps": [
+        "sudo make install"
+      ],
+      "post_install": [
+        "sudo modprobe nvidia"
+      ],
+      "comment": "Driver essencial para placas NVIDIA antigas (séries 8 a 300) que não são mais suportadas pelos drivers novos."
     }
   },
-  "audio": {
-    "Realtek": {
-      "module": "snd_hda_intel",
-      "repo": "https://github.com/alsa-project/alsa-driver.git"
-    },
-    "Intel": {
-      "module": "snd_hda_intel",
-      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/tiwai/sound.git"
-    },
-    "Generic": {
-      "module": "alsa",
-      "repo": "https://github.com/alsa-project/alsa-lib.git"
+  "ethernet": {
+    "Realtek_R8168": {
+      "device_ids": ["10ec:8168"],
+      "type": "git",
+      "repo": "https://github.com/mtorromeo/r8168.git",
+      "module": "r8168",
+      "dependencies": ["dkms", "build-essential", "linux-headers-$(uname -r)"],
+      "build_steps": [
+        "sudo ./autorun.sh"
+      ],
+      "comment": "O driver oficial da Realtek para sua placa Gigabit Ethernet. Frequentemente mais estável que o módulo 'r8169' do kernel."
     }
   },
-  "usb": {
-    "Webcam": {
-      "module": "uvcvideo",
-      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
-    },
-    "Storage": {
-      "module": "usb-storage",
-      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
-    },
-    "MTP": {
-      "module": "mtp",
-      "repo": "https://github.com/libmtp/libmtp.git"
-    },
-    "Generic": {
-      "module": "usbcore",
-      "repo": "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git"
+  "printer": {
+    "HP_Plugin": {
+        "device_ids": ["03f0:"],
+        "type": "shell",
+        "dependencies": ["hplip"],
+        "build_steps": [
+            "sudo hp-plugin -i"
+        ],
+        "comment": "Muitas impressoras HP exigem um plugin proprietário para funcionar. Este comando automatiza o download e a instalação."
     }
   }
 }
-

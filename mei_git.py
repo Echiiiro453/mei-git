@@ -1,150 +1,214 @@
 #!/usr/bin/env python3
+import sys
+import os
+import json
 import subprocess
 import re
-import sys # Importar a biblioteca 'sys' para ler os argumentos
+
+# --- Funções Auxiliares ---
 
 def run_cmd(cmd):
-    """Executa um comando no shell e retorna a saída."""
-    return subprocess.getoutput(cmd)
-
-def detect_hardware():
-    """Detecta o hardware, exibe um resumo e salva um log completo."""
-    print("🔍 Detectando hardware... (log completo em /tmp/mei-hw.log)")
-    pci_output = run_cmd("lspci -nnk")
-    usb_output = run_cmd("lsusb")
-    # Usamos set para uma busca mais rápida
-    loaded_modules = set(line.split()[0] for line in run_cmd("lsmod").splitlines()[1:])
-
-    # ======== LISTAS DE KEYWORDS POR CATEGORIA ========
-    # Mapeia palavras-chave para o nome do fabricante principal
-    device_map = {
-        "wifi": ["Wireless", "Wi-Fi", "WLAN", "RTL", "BCM", "Atheros", "QCA", "MT76", "Mediatek", "Ralink", "Intel"],
-        "bluetooth": ["Bluetooth", "Intel", "Realtek", "Broadcom", "Qualcomm", "Cypress", "BT"],
-        "ethernet": ["Ethernet", "Realtek", "Intel", "Broadcom", "Qualcomm", "Marvell", "Atheros", "Killer", "Mellanox"],
-        "audio": ["Audio device", "HD Audio", "Realtek", "Intel", "NVIDIA", "AMD", "Creative"],
-        "video": ["VGA compatible controller", "3D controller", "Display", "NVIDIA", "AMD", "ATI", "Intel"]
-    }
-
-    # ======== SUGESTÕES DE DRIVERS ========
-    # Mapeia um nome de fabricante para os possíveis módulos do kernel
-    driver_suggestions = {
-        "Realtek": ["r8168", "r8169", "rtlwifi", "btusb"],
-        "Intel": ["iwlwifi", "e1000e", "btintel", "snd_hda_intel"],
-        "Broadcom": ["broadcom-wl", "b43", "brcmsmac", "bcm5974"],
-        "Atheros": ["ath9k", "ath10k"],
-        "Qualcomm": ["ath10k", "ath11k"],
-        "Mediatek": ["mt76"],
-        "Ralink": ["rt2800usb", "rt2870sta"],
-        "NVIDIA": ["nvidia", "nouveau"],
-        "AMD": ["amdgpu", "radeon"],
-        "Creative": ["snd_emu10k1"],
-        "Cypress": ["btusb"],
-        "Mellanox": ["mlx4_en", "mlx5_core"],
-        "Killer": ["ath10k", "alx"]
-    }
-
-    def get_main_vendor(line):
-        """Identifica o fabricante principal na linha do dispositivo."""
-        for vendor in driver_suggestions:
-            if vendor.lower() in line.lower():
-                return vendor
-        return None
-
-    def is_module_loaded(vendor):
-        """Checa se algum módulo do fabricante está no lsmod."""
-        if vendor and vendor in driver_suggestions:
-            for module_name in driver_suggestions[vendor]:
-                if module_name in loaded_modules:
-                    return True
+    """
+    Executa um comando no shell, mostrando a saída em tempo real.
+    Retorna True se o comando for bem-sucedido, False caso contrário.
+    """
+    print(f"🔩 Executando: {cmd}")
+    try:
+        # Usamos Popen para streaming de saída, essencial para longas compilações
+        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+        for line in iter(process.stdout.readline, ''):
+            print(line, end='')
+        process.wait()
+        return process.returncode == 0
+    except Exception as e:
+        print(f"❌ Erro ao executar comando: {e}")
         return False
 
-    def process_device_line(line):
-        """Processa uma linha de lspci/lsusb e retorna a string formatada."""
-        # Extrai VendorID:DeviceID com segurança
-        vendor_match = re.search(r'\[(\w{4}:\w{4})\]', line)
-        id_str = f" [ID: {vendor_match.group(1)}]" if vendor_match else ""
+def load_driver_db():
+    """Carrega o banco de dados de drivers do arquivo JSON."""
+    try:
+        with open("drivers.json") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print("❌ Erro: Arquivo 'drivers.json' não encontrado. Certifique-se de que ele está na mesma pasta.")
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"❌ Erro de formato no 'drivers.json': {e}")
+        sys.exit(1)
+
+def check_pkg_manager():
+    """Verifica qual gerenciador de pacotes está disponível."""
+    if run_cmd("command -v apt-get"):
+        return "apt"
+    # Adicionar outras verificações aqui no futuro (ex: pacman, dnf)
+    return None
+
+# --- Função de Detecção (Scan) ---
+
+def detect_hardware():
+    """
+    Escaneia o hardware PCI e USB, imprime um resumo e retorna um CONJUNTO
+    de todos os Device IDs [VendorID:DeviceID] encontrados.
+    """
+    print("🔍 Escaneando hardware PCI e USB...")
+    detected_ids = set()
+    try:
+        pci_output = subprocess.getoutput("lspci -nn")
+        pci_ids = re.findall(r'\[(\w{4}:\w{4})\]', pci_output)
+        detected_ids.update(pci_ids)
         
-        main_vendor = get_main_vendor(line)
+        usb_output = subprocess.getoutput("lsusb")
+        usb_ids = re.findall(r'ID (\w{4}:\w{4})', usb_output)
+        detected_ids.update(usb_ids)
+    except Exception as e:
+        print(f"⚠️ Não foi possível escanear o hardware: {e}")
 
-        if main_vendor:
-            drivers = "/".join(driver_suggestions[main_vendor])
-            status = "✅ Carregado" if is_module_loaded(main_vendor) else "❌ Não carregado"
-            return f"{line.strip()}{id_str}\n      💡 Sugestão: {drivers} | Status: {status}"
-        else:
-            return f"{line.strip()}{id_str}\n      💡 Sugestão: Driver desconhecido, pesquise pelo ID."
-
-    # ======== DETECÇÃO E AGRUPAMENTO ========
-    hardware = {cat: [] for cat in device_map}
-    
-    # Processa PCI e USB
-    full_output = pci_output + "\n" + usb_output
-    for line in full_output.splitlines():
-        for category, keywords in device_map.items():
-            if any(k.lower() in line.lower() for k in keywords):
-                hardware[category].append(process_device_line(line))
-                break # Evita que um dispositivo seja classificado em múltiplas categorias
-    
-    hardware["usb"] = usb_output.splitlines()
-
-    # ======== PRINT BONITO ========
-    log_content = ""
-    print("-" * 50)
-    for title, hw_list in hardware.items():
-        if title == 'usb': continue # Mostra USB por último e de forma simples
-        print(f"📌 {title.capitalize()}:")
-        if hw_list:
-            for d in hw_list:
-                print(f"    - {d}\n")
-            log_content += f"## {title.capitalize()}\n" + "\n".join(hw_list) + "\n\n"
-        else:
-            print("    Nenhum dispositivo detectado.\n")
-
-    # Mostra USB de forma simples
-    print(f"📌 USB:")
-    if hardware["usb"]:
-        for d in hardware["usb"]:
-            print(f"    - {d}")
+    if not detected_ids:
+        print("Nenhum ID de dispositivo encontrado.")
     else:
-        print("    Nenhum dispositivo detectado.")
-    print("-" * 50)
+        print(f"✔️ {len(detected_ids)} IDs de dispositivos únicos encontrados.")
+    return detected_ids
 
+# --- Função de Instalação (Install) ---
 
-    # Salva log completo
-    with open("/tmp/mei-hw.log", "w") as f:
-        f.write("==== SAÍDA BRUTA PCI ====\n")
-        f.write(pci_output + "\n\n")
-        f.write("==== SAÍDA BRUTA USB ====\n")
-        f.write(usb_output + "\n\n")
-        f.write("==== HARDWARE DETECTADO E PROCESSADO ====\n")
-        f.write(log_content)
-        f.write("## USB (Bruto)\n" + "\n".join(hardware["usb"]))
-    
-    print("\n📂 Log completo com detalhes técnicos salvo em /tmp/mei-hw.log")
+def install_driver(category, detected_ids, db):
+    """
+    O "motor" de instalação que lê e executa as "receitas" do drivers.json.
+    Agora suporta múltiplos tipos de instalação.
+    """
+    print(f"\n🚀 Procurando por um driver instalável na categoria '{category}'...")
+    drivers_in_category = db.get(category)
+    if not drivers_in_category:
+        print(f"❌ Nenhuma entrada para a categoria '{category}' encontrada em drivers.json.")
+        return
 
+    # 1. Encontrar um driver compatível
+    target_driver = None
+    driver_name = ""
+    for name, details in drivers_in_category.items():
+        if any(did in detected_ids for did in details.get("device_ids", [])):
+            target_driver = details
+            driver_name = name
+            print(f"✅ Driver compatível encontrado: '{driver_name}'")
+            break
+            
+    if not target_driver:
+        print(f"❌ Nenhum driver compatível para sua máquina foi encontrado na categoria '{category}' em drivers.json.")
+        return
+
+    # 2. Instalar dependências
+    pkg_manager = check_pkg_manager()
+    dependencies = target_driver.get("dependencies")
+    if dependencies:
+        print("\n[Passo 1 de 3] Verificando e instalando dependências...")
+        if pkg_manager == "apt":
+            dep_string = " ".join(dependencies)
+            if not run_cmd(f"sudo apt-get install -y {dep_string}"):
+                print("❌ Falha ao instalar dependências. Abortando.")
+                return
+        else:
+            print(f"⚠️ Gerenciador de pacotes não suportado. Por favor, instale manualmente: {dependencies}")
+
+    # 3. Executar a instalação baseada no TIPO
+    print(f"\n[Passo 2 de 3] Executando instalação (tipo: {target_driver.get('type')})...")
+    install_type = target_driver.get("type")
+    success = False
+
+    if install_type == "git":
+        repo_url = target_driver["repo"]
+        repo_name = repo_url.split("/")[-1].replace(".git", "")
+        if not os.path.exists(repo_name):
+            if not run_cmd(f"git clone {repo_url}"):
+                print("❌ Falha ao clonar o repositório. Abortando.")
+                return
+        else:
+            print(f"   - O diretório '{repo_name}' já existe. Pulando clone.")
+        
+        try:
+            original_dir = os.getcwd()
+            os.chdir(repo_name)
+            
+            build_steps = target_driver.get("build_steps", [])
+            for step in build_steps:
+                if not run_cmd(step):
+                    print(f"❌ Falha no passo de compilação: '{step}'. Abortando.")
+                    os.chdir(original_dir)
+                    return
+            success = True
+            os.chdir(original_dir)
+
+        except Exception as e:
+            print(f"❌ Erro durante o processo de build: {e}")
+            os.chdir(original_dir) # Garante que voltamos ao dir original
+            return
+
+    elif install_type == "apt":
+        package = target_driver.get("package")
+        if package:
+            success = run_cmd(f"sudo apt-get install -y {package}")
+        else:
+            print("❌ Erro no JSON: tipo 'apt' sem a chave 'package'.")
+
+    elif install_type == "shell":
+        build_steps = target_driver.get("build_steps", [])
+        if not build_steps:
+            print("❌ Erro no JSON: tipo 'shell' sem a chave 'build_steps'.")
+        else:
+            for step in build_steps:
+                if not run_cmd(step):
+                    print(f"❌ Falha no passo de shell: '{step}'. Abortando.")
+                    return
+            success = True
+
+    else:
+        print(f"❌ Tipo de instalação desconhecido: '{install_type}'")
+
+    if not success:
+        print("\n A instalação principal falhou. Verifique os logs de erro.")
+        return
+
+    # 4. Executar passos de pós-instalação
+    post_install_steps = target_driver.get("post_install")
+    if post_install_steps:
+        print("\n[Passo 3 de 3] Executando passos de pós-instalação...")
+        for step in post_install_steps:
+            if not run_cmd(step):
+                print(f"⚠️ O passo de pós-instalação '{step}' falhou, mas a instalação principal pode ter funcionado.")
+
+    print(f"\n🎉 Processo de instalação para '{driver_name}' concluído!")
+
+# --- Função Principal (CLI) ---
 
 def main():
-    """Função principal para controlar o script via linha de comando."""
-    # sys.argv é a lista de argumentos. sys.argv[0] é o nome do script.
+    """Ponto de entrada do script."""
     args = sys.argv[1:]
-
     if not args:
-        print("Uso: mei-git <comando>")
-        print("Comandos disponíveis: scan")
+        print("Uso: mei-git <comando> [argumento]")
+        print("Comandos disponíveis:")
+        print("  scan          - Detecta o hardware e seus IDs.")
+        print("  install <cat> - Instala o driver para uma categoria (ex: wifi, video).")
         sys.exit(1)
 
     command = args[0]
-
     if command == "scan":
         detect_hardware()
-    # Futuramente, você pode adicionar outros comandos aqui
-    # elif command == "install":
-    #     package = args[1]
-    #     install_driver(package)
+    elif command == "install":
+        if len(args) < 2:
+            print("❌ Erro: Especifique a categoria. Uso: mei-git install <categoria>")
+            sys.exit(1)
+        
+        category_to_install = args[1]
+        driver_db = load_driver_db()
+        detected_device_ids = detect_hardware()
+        
+        if not detected_device_ids:
+            print("Não foi possível continuar a instalação sem detectar os IDs de hardware.")
+            sys.exit(1)
+
+        install_driver(category_to_install, detected_device_ids, driver_db)
     else:
         print(f"Comando desconhecido: '{command}'")
-        print("Use 'mei-git scan' para detectar o hardware.")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
