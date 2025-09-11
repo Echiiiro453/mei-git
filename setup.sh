@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# setup.sh - v4.1 com interface interativa e suporte multi-distro completo
+# setup.sh - v4.2 - Mais robusto, com melhorias de compatibilidade e interface
+
+# Força o locale para UTF-8 para garantir que acentos e caracteres especiais funcionem
+export LANG=C.UTF-8
 
 # --- Verificação e Instalação do 'dialog' ---
-# Primeiro, checa se o 'dialog' está disponível para uma experiência melhor
 if ! command -v dialog &> /dev/null; then
-    echo "???? O pacote 'dialog' não foi encontrado. Tentando instalar para uma melhor experiência..."
-    # A maioria das distros usa o mesmo nome de pacote 'dialog'
+    echo "???? O pacote 'dialog' nao foi encontrado. Tentando instalar para uma melhor experiencia..."
     if command -v apt-get &> /dev/null; then
         sudo apt-get update && sudo apt-get install -y dialog
     elif command -v dnf &> /dev/null; then
@@ -16,25 +17,24 @@ if ! command -v dialog &> /dev/null; then
     fi
     
     if [ $? -ne 0 ]; then
-        echo "???? Falha ao instalar o 'dialog'. O script continuará em modo texto simples."
+        echo "???? Falha ao instalar o 'dialog'. O script continuara em modo texto simples."
     fi
 fi
 
 # --- Funções de Interface ---
-# Funções para mostrar mensagens e fazer perguntas, usando 'dialog' se disponível
-
 show_message() {
     if command -v dialog &> /dev/null; then
-        dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 10 70
+        # --cr-wrap quebra as linhas automaticamente
+        dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 12 75
     else
-        echo -e "\n$1\n" # Fallback para modo texto
+        echo -e "\n$1\n"
     fi
 }
 
 ask_yes_no() {
     if command -v dialog &> /dev/null; then
-        dialog --title "Confirmação" --yesno "$1" 10 70
-        return $? # Retorna 0 para Sim, 1 para Não
+        dialog --title "Confirmacao" --cr-wrap --yesno "$1" 12 75
+        return $?
     else
         read -p "$1 [S/n] " choice
         case "$choice" in
@@ -46,20 +46,20 @@ ask_yes_no() {
 
 # --- Lógica Principal do Script ---
 
-show_message "Bem-vindo ao instalador de dependências do MEI Git!\\n\\nEste script irá preparar seu sistema para compilar e instalar drivers."
+show_message "Bem-vindo ao instalador de dependencias do MEI Git!\\n\\nEste script ira preparar seu sistema para compilar e instalar drivers."
 
-if ask_yes_no "O script irá detectar sua distribuição e instalar os pacotes necessários (como git, dkms, build-essential, etc.).\\n\\nDeseja continuar?"; then
+if ask_yes_no "O script ira detectar sua distribuicao e instalar os pacotes necessarios (como git, dkms, build-essential, etc.).\\n\\nDeseja continuar?"; then
     
     # Detecção de Distro
     if [ -f /etc/os-release ]; then
         . /etc/os-release
         OS=$ID
     else
-        show_message "?? Não foi possível detectar a distribuição. Instale as dependências manualmente."
+        show_message "?? Nao foi possivel detectar a distribuicao. Instale as dependencias manualmente."
         exit 1
     fi
 
-    # Lógica de Instalação Multi-distro Completa
+    # Lógica de Instalação Multi-distro
     echo "???? Detectada distro: $OS. Preparando para instalar pacotes..."
     
     case "$OS" in
@@ -75,37 +75,24 @@ if ask_yes_no "O script irá detectar sua distribuição e instalar os pacotes nece
             PACKAGES="git dkms base-devel linux-headers"
             COMMAND="sudo pacman -Syu --noconfirm $PACKAGES"
             ;;
-        "opensuse-tumbleweed" | "opensuse-leap")
-            PACKAGES="git dkms patterns-devel-base-devel_basis kernel-default-devel"
-            COMMAND="sudo zypper install -y $PACKAGES"
-            ;;
-        "void")
-            PACKAGES="git dkms base-devel linux-headers"
-            COMMAND="sudo xbps-install -Syu $PACKAGES"
-            ;;
-        "solus")
-            PACKAGES="git dkms linux-current-headers system.devel"
-            COMMAND="sudo eopkg it -y $PACKAGES"
-            ;;
+        # Adicione outros casos aqui se necessário
         *)
-            show_message "?? Distribuição '$OS' não suportada por este script.\\n\\nPor favor, instale os pacotes equivalentes a: git, dkms, build-essential, linux-headers."
+            show_message "?? Distribuicao '$OS' nao suportada por este script.\\n\\nPor favor, instale os pacotes equivalentes a: git, dkms, build-essential, linux-headers."
             exit 1
             ;;
     esac
 
-    echo "   Executando o comando de instalação..."
-    
-    # Executa o comando de instalação definido
+    echo "   Executando o comando de instalacao..."
     eval $COMMAND
 
     if [ $? -ne 0 ]; then
-        show_message "?? Falha na instalação das dependências. Verifique os erros no terminal."
+        show_message "?? Falha na instalacao das dependencias. Verifique os erros no terminal."
         exit 1
     fi
 
-    show_message "?? Dependências instaladas com sucesso!\\n\\nO MEI Git está pronto para ser usado. Lembre-se de criar o comando global com 'sudo ln ...' se ainda não o fez."
+    show_message "?? Dependencias instaladas com sucesso!\\n\\nO MEI Git esta pronto para ser usado. Lembre-se de criar o comando global com 'sudo ln ...' se ainda nao o fez."
 
 else
-    show_message "Instalação cancelada pelo usuário."
+    show_message "Instalacao cancelada pelo usuario."
     exit 0
 fi
