@@ -45,6 +45,14 @@
 
 ---
 
+## 🎥 Demonstração
+
+<p align="center">
+  <img src="https://i.imgur.com/j1uZn7w.gif" alt="Demonstração do MEI Git" width="700"/>
+</p>
+
+---
+
 ## 📥 Instalação
 
 A instalação é feita em dois passos simples: rodar o script de setup e criar o comando global.
