@@ -1,6 +1,8 @@
-#!#!/bin/bash
+#!/bin/bash
 
 # setup.sh - Instala dependências essenciais para o MEI Git
+
+set -e
 
 echo "???? Iniciando setup do MEI Git..."
 
@@ -36,28 +38,35 @@ install_packages() {
             ;;
         *)
             echo "???? Distribuição '$OS' não suportada por este script."
-            echo "Por favor, instale manualmente: $pkgs"
+            echo "   Instale manualmente: $pkgs"
             ;;
     esac
-
-    if [ $? -ne 0 ]; then
-        echo "?? Falha na instalação das dependências. Verifique os erros acima."
-        exit 1
-    fi
 }
 
 # --- Lógica Principal ---
 detect_distro
 
 # Define os pacotes baseados na distro
-# Arch já vem com 'base-devel' que cobre muita coisa
-if [ "$OS" == "arch" ]; then
-    PACKAGES="git dkms linux-headers"
-else
-    PACKAGES="git dkms build-essential linux-headers-$(uname -r)"
-fi
+case "$OS" in
+    "ubuntu" | "debian" | "linuxmint")
+        PACKAGES="git dkms build-essential linux-headers-$(uname -r) hplip"
+        ;;
+    "fedora" | "rhel" | "centos")
+        PACKAGES="git gcc make dkms kernel-devel hplip"
+        ;;
+    "arch")
+        PACKAGES="git base-devel dkms linux-headers hplip"
+        ;;
+    "opensuse-tumbleweed" | "opensuse-leap")
+        PACKAGES="git gcc make dkms kernel-devel hplip"
+        ;;
+    *)
+        PACKAGES="git dkms build-essential linux-headers hplip"
+        ;;
+esac
 
 install_packages "$PACKAGES"
 
 echo "?? Setup concluído! O MEI Git está pronto para ser usado."
-echo "   Use 'sudo ln -sf \$(pwd)/mei_git.py /usr/local/bin/mei-git' para criar o comando global."
+echo "   Para criar o comando global rode:"
+echo "   sudo ln -sf \$(pwd)/mei_git.py /usr/local/bin/mei-git"

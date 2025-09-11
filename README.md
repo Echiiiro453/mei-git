@@ -1,124 +1,128 @@
+---
 
 ````markdown
-# MEI Git
+# 🛠️ MEI Git
 
-**CLI Linux para instalação inteligente de drivers comuns e de difícil configuração.**
+**MEI Git** é um gerenciador de drivers automatizado para Linux.  
+Ele detecta o hardware do seu PC (Wi-Fi, placa de vídeo, rede, impressoras, etc.) e baixa/instala o driver correto direto da fonte (repositório Git, pacotes da distro ou scripts).
 
-O **MEI Git** é uma ferramenta de linha de comando que automatiza a detecção e instalação de drivers que frequentemente faltam ou causam problemas em distribuições Linux. Ele usa um banco de dados curado com "receitas" para instalar drivers de Wi-Fi, vídeo, ethernet e periféricos diretamente de suas fontes.
-
-Tudo em um único arquivo, portátil e fácil de usar. Ideal para pós-instalação de sistemas em notebooks e desktops.
-
----
-
-## 🔧 Funcionalidades
-
-- **Detecção Precisa:** Escaneia seu hardware PCI e USB para encontrar os IDs exatos dos dispositivos.
-- **Instalação Baseada em Receitas:** Segue instruções detalhadas de um banco de dados interno para cada driver.
-- **Múltiplos Métodos de Instalação:** Suporta instalação via `git` (compilando o código-fonte), `apt` (usando pacotes da distro) e `shell` (executando comandos específicos).
-- **Gerenciamento de Dependências:** Instala automaticamente os pacotes necessários (`dkms`, `build-essential`, etc.) através do comando `setup`.
-- **Foco em Drivers Problemáticos:** Concentra-se em drivers que normalmente não vêm por padrão no kernel, como certos chips **Realtek**, **Broadcom** e placas **NVIDIA** legacy.
-- **Log Simplificado:** Gera um log detalhado da detecção em `/tmp/mei-hw.log`.
+💡 Objetivo: nunca mais ficar caçando driver perdido em fórum obscuro.
 
 ---
 
-## ⚙️ Instalação Rápida
+## ✨ Funcionalidades
 
-Você só precisa de um único arquivo. Abra o terminal e execute os comandos abaixo:
+- 🔍 Detecção automática de hardware (`lspci`, `lsusb`)
+- 📂 Banco de drivers centralizado em `drivers.json`
+- ⚡ Suporte a múltiplos métodos de instalação:
+  - `git clone` + build
+  - `apt/dnf/pacman/zypper`
+  - execução de comandos `shell`
+- 🖨️ Drivers de impressora (HP) incluídos
+- 🎮 Drivers antigos de GPU (NVIDIA legacy, etc.)
+- 🛜 Wi-Fi e Ethernet Realtek + Broadcom
+
+---
+
+## 📦 Instalação
+
+Clone o repositório e rode o script de setup:
 
 ```bash
-# 1. Baixe o script do repositório
-curl -LO [https://github.com/Echiiiro453/mei-git/raw/main/mei-git](https://github.com/Echiiiro453/mei-git/raw/main/mei-git)
-
-# (Se não tiver o curl, use o wget)
-# wget [https://github.com/Echiiiro453/mei-git/raw/main/mei-git](https://github.com/Echiiiro453/mei-git/raw/main/mei-git)
-
-# 2. Dê permissão de execução
-chmod +x mei-git
-
-# 3. Rode o setup para instalar dependências e o comando global
-sudo ./mei-git setup
+git clone https://github.com/Echiiiro453/mei-git.git
+cd mei-git
+chmod +x setup.sh
+./setup.sh
 ````
 
-Após o setup, o comando `mei-git` estará disponível em todo o sistema.
+Crie o comando global:
 
------
+```bash
+sudo ln -sf $(pwd)/mei_git.py /usr/local/bin/mei-git
+```
 
-## 🚀 Como Usar (Passo a Passo)
+Agora o `mei-git` pode ser usado em qualquer lugar 🎉
 
-A filosofia da ferramenta é simples: primeiro você escaneia para diagnosticar, depois instala o que for necessário.
+---
 
-### Passo 1: Escaneie seu Hardware
+## 🚀 Uso
 
-Use o comando `scan` para fazer um diagnóstico seguro. Ele não modifica nada no seu sistema e mostra o que o MEI Git conseguiu detectar.
+### 1. Escanear hardware
 
 ```bash
 mei-git scan
 ```
 
-A saída será algo como:
-
-```
-🔍 Escaneando hardware PCI e USB...
-✔️ 42 IDs de dispositivos únicos encontrados.
-```
-
-### Passo 2: Instale o Driver por Categoria
-
-Escolha a categoria do driver que está faltando e use o comando `install`.
-
-**Exemplo: Instalando um driver de Wi-Fi**
-
-Se o seu Wi-Fi não funciona, rode:
+### 2. Instalar driver de uma categoria
 
 ```bash
-sudo mei-git install wifi
+mei-git install wifi
+mei-git install video
+mei-git install ethernet
+mei-git install printer
 ```
 
-O script irá identificar seu hardware, encontrar um driver compatível no banco de dados interno e iniciar a instalação, mostrando cada passo na tela.
+Se houver driver compatível, ele será baixado e instalado automaticamente ✅
 
-### Outros Exemplos
+---
 
-```bash
-# Para instalar um driver de vídeo (ex: NVIDIA legacy)
-sudo mei-git install video
+## 🖥️ Compatibilidade
 
-# Para instalar um driver de rede cabeada (ex: Realtek r8168)
-sudo mei-git install ethernet
+Atualmente testado em:
 
-# Para instalar o plugin da sua impressora HP
-sudo mei-git install printer
-```
+* Ubuntu / Debian / Linux Mint
+* Fedora / RHEL / CentOS
+* Arch Linux
+* openSUSE Tumbleweed / Leap
 
-### Ajuda e Documentação
+---
 
-Para ver a lista de comandos ou a documentação completa a qualquer momento, use:
-
-```bash
-# Ver a lista de comandos
-mei-git
-
-# Ver a documentação completa (este README)
-mei-git readme
-```
-
------
-
-## 📌 Roadmap (Roteiro)
-
-  - [x] Motor de detecção de hardware por IDs.
-  - [x] Motor de instalação baseado em "receitas" JSON internas.
-  - [x] Suporte para `git`, `apt` e `shell` como métodos de instalação.
-  - [x] Comando de `setup` multi-distro para dependências.
-  - [x] Documentação embutida no script (`mei-git readme`).
-  - [ ] Suporte para instalar múltiplas categorias de uma só vez (`mei-git install wifi video`).
-  - [ ] Comando interativo para adicionar novos drivers ao banco de dados (`mei-git add-driver`).
-  - [ ] Confirmação interativa ("Você deseja instalar [driver]? [S/n]") antes de cada instalação.
-
------
-
-👨‍💻 **Autor:** Marcondes (Andrey)
-\<br\>
-📦 **Repositório Oficial:** [github.com/Echiiiro453/mei-git](https://github.com/Echiiiro453/mei-git)
+## 🗂️ Estrutura do Projeto
 
 ```
+mei-git/
+├── mei_git.py     # Script principal (CLI)
+├── drivers.json   # Banco de drivers e instruções de instalação
+├── setup.sh       # Instalador de dependências
+└── README.md
+```
+
+---
+
+## 🛣️ Roadmap
+
+* [ ] Suporte a mais distros (Void, Alpine, etc.)
+* [ ] Detecção e instalação de drivers AMD
+* [ ] Drivers proprietários de impressoras Canon/Epson
+* [ ] Interface gráfica (GUI) simples
+* [ ] Modo offline (instalação sem internet)
+
+---
+
+## 🤝 Contribuindo
+
+Pull requests são bem-vindos!
+
+1. Fork o projeto
+2. Crie sua feature branch (`git checkout -b minha-feature`)
+3. Commit suas mudanças (`git commit -m 'feat: adiciona driver X'`)
+4. Faça push (`git push origin minha-feature`)
+5. Abra um Pull Request 🚀
+
+---
+
+## 📜 Licença
+
+Distribuído sob a licença **MIT**.
+Veja `LICENSE` para mais informações.
+
+---
+
+### ⭐ Dê um star no repositório se esse projeto te ajudou!
+
+```
+
+---
+
+Quer que eu já adicione **badges prontos** (tipo versão, distros suportadas, licença, status do build) nesse README também?
 ```
