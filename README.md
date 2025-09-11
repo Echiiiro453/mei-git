@@ -1,3 +1,5 @@
+# MEI Git
+
 <div align="center">
   <br />
   <p>
@@ -5,10 +7,10 @@
   </p>
   <br />
   <p>
-    <b>O canivete suíço para instalação de drivers no Linux.</b>
+    <b>O canivete suÃ­Ã§o para instalaÃ§Ã£o de drivers no Linux.</b>
   </p>
   <p>
-    Detecta seu hardware e instala drivers de Wi-Fi, vídeo, rede e periféricos de forma automatizada.
+    Detecta seu hardware e instala drivers de Wi-Fi, vÃ­deo, rede e perifÃ©ricos de forma automatizada.
   </p>
   <p>
     <a href="#">
@@ -25,99 +27,109 @@
 
 ---
 
-> Cansado de passar horas em fóruns obscuros procurando um driver compatível com Linux? O **MEI Git** foi criado para resolver esse problema. Ele automatiza todo o processo de detecção, download e instalação, usando um banco de dados curado com as soluções para os hardwares mais comuns e problemáticos.
-
-## ?? Funcionalidades
-
-- ?? **Detecção Automática:** Identifica seu hardware (`lspci`, `lsusb`) e seus IDs de fabricante/dispositivo.
-- ?? **Banco de Dados Inteligente:** Utiliza um arquivo `drivers.json` com "receitas" de instalação para cada hardware.
-- ?? **Múltiplos Métodos:** Suporta instalação via `git clone` + compilação, gerenciadores de pacotes (`apt`, `dnf`, etc.) ou scripts `shell`.
-- ?? **Ampla Cobertura:** Inclui drivers para:
-  - ???? Wi-Fi & Ethernet (Realtek, Broadcom)
-  - ?????? Placas de Vídeo (NVIDIA legacy)
-  - ?????? Impressoras (HP e outras)
-  - ???? E muito mais...
+> Cansado de passar horas em fÃ³runs obscuros procurando drivers compatÃ­veis com Linux?  
+> O **MEI Git** automatiza todo o processo de detecÃ§Ã£o, download e instalaÃ§Ã£o, usando um banco de dados curado com soluÃ§Ãµes para os hardwares mais comuns e problemÃ¡ticos.
 
 ---
 
-## ???? Instalação
+## ğŸš€ Funcionalidades
 
-A instalação é feita em dois passos simples: rodar o script de setup e criar o comando global.
+- ğŸ” **DetecÃ§Ã£o AutomÃ¡tica:** Identifica seu hardware (`lspci`, `lsusb`) e IDs de fabricante/dispositivo.  
+- ğŸ“‚ **Banco de Dados Inteligente:** Usa `drivers.json` com â€œreceitasâ€ de instalaÃ§Ã£o para cada hardware.  
+- âš™ï¸ **MÃºltiplos MÃ©todos:** Suporte a instalaÃ§Ã£o via `git clone` + compilaÃ§Ã£o, gerenciadores de pacotes (`apt`, `dnf`, etc.) ou scripts `shell`.  
+- ğŸŒ **Ampla Cobertura:** Inclui drivers para:
+  - ğŸ“¡ Wi-Fi & Ethernet (Realtek, Broadcom)  
+  - ğŸ® Placas de VÃ­deo (NVIDIA legacy)  
+  - ğŸ–¨ï¸ Impressoras (HP e outras)  
+  - ğŸ”Œ E muito mais...  
+
+---
+
+## ğŸ“¥ InstalaÃ§Ã£o
+
+A instalaÃ§Ã£o Ã© feita em dois passos simples: rodar o script de setup e criar o comando global.
 
 ```bash
-# 1. Clone o repositório e entre na pasta
-git clone [https://github.com/Echiiiro453/mei-git.git](https://github.com/Echiiiro453/mei-git.git)
+# 1. Clone o repositÃ³rio e entre na pasta
+git clone https://github.com/Echiiiro453/mei-git.git
 cd mei-git
 
-# 2. Dê permissão de execução e rode o setup
-# (Ele instalará dependências como git, dkms e build-essential)
+# 2. DÃª permissÃ£o de execuÃ§Ã£o e rode o setup
 chmod +x setup.sh
 sudo ./setup.sh
 
-# 3. Crie o comando global para usar 'mei-git' de qualquer lugar
+# 3. Crie o comando global
 sudo ln -sf "$(pwd)/mei_git.py" /usr/local/bin/mei-git
-'''
+```
 
-Pronto! Agora o comando mei-git está disponível em todo o seu sistema.
+Pronto! Agora o comando `mei-git` estÃ¡ disponÃ­vel em todo o sistema.  
 
-?????? Como Usar
-O fluxo de trabalho é simples: primeiro escaneie para um diagnóstico, depois instale o que for necessário.
+---
 
-1. Escanear Hardware
-Use scan para ver o que o MEI Git detecta no seu sistema. É um comando seguro que não instala ou modifica nada.
+## ğŸ’» Como Usar
 
-Bash
+Fluxo de trabalho simples: **primeiro escaneie o hardware, depois instale o que precisar**.
 
+### 1. Escanear Hardware
+```bash
 mei-git scan
-O comando scan também pode mostrar quais drivers do banco de dados são compatíveis com seu hardware e se os módulos já estão carregados no kernel.
+```
+Mostra o que o MEI Git detecta e quais drivers sÃ£o compatÃ­veis.  
 
-2. Instalar um Driver
-Use install seguido da categoria do dispositivo. O MEI Git irá escanear, encontrar um driver compatível e iniciar a instalação.
-
-Bash
-
-# Para instalar um driver de Wi-Fi
+### 2. Instalar um Driver
+```bash
+# Wi-Fi
 sudo mei-git install wifi
 
-# Para instalar um driver de Vídeo
+# VÃ­deo
 sudo mei-git install video
 
-# Para instalar um driver de Rede Ethernet
+# Rede Ethernet
 sudo mei-git install ethernet
-Se um driver compatível for encontrado, a instalação começará, mostrando cada passo no terminal.
+```
+Se um driver compatÃ­vel for encontrado, a instalaÃ§Ã£o comeÃ§arÃ¡ automaticamente.
 
-???? Estrutura do Projeto
+---
+
+## ğŸ“‚ Estrutura do Projeto
+
+```
 mei-git/
-?%%? mei_git.py      # O script principal da aplicação (CLI)
-?%%? drivers.json    # O banco de dados com as "receitas" de instalação
-?%%? setup.sh        # Script para instalar as dependências do sistema
-?%%? README.md       # Esta documentação
-???? Roadmap (Planos Futuros)
-[ ] Suporte a mais distribuições no script de setup (Void, Alpine, etc.).
+â”œâ”€â”€ mei_git.py      # Script principal (CLI)
+â”œâ”€â”€ drivers.json    # Banco de dados com receitas de instalaÃ§Ã£o
+â”œâ”€â”€ setup.sh        # Script para instalar dependÃªncias
+â””â”€â”€ README.md       # Esta documentaÃ§Ã£o
+```
 
-[ ] Detecção e instalação de drivers de vídeo AMD.
+---
 
-[ ] Adicionar drivers proprietários de impressoras Canon/Epson.
+## ğŸ› ï¸ Roadmap (Planos Futuros)
 
-[ ] Criar uma interface gráfica (GUI) simples para facilitar o uso.
+- [ ] Suporte a mais distribuiÃ§Ãµes no script de setup (Void, Alpine, etc.)  
+- [ ] DetecÃ§Ã£o e instalaÃ§Ã£o de drivers AMD  
+- [ ] Suporte a drivers proprietÃ¡rios Canon/Epson  
+- [ ] Criar interface grÃ¡fica (GUI) simples  
 
-???? Contribuindo
-Contribuições são o que tornam a comunidade open source incrível. Qualquer ajuda é muito bem-vinda.
+---
 
-Faça um Fork do projeto
+## ğŸ¤ Contribuindo
 
-Crie sua Feature Branch (git checkout -b feature/DriverNovo)
+ContribuiÃ§Ãµes sÃ£o muito bem-vindas!  
 
-Faça o Commit de suas alterações (git commit -m 'feat: Adiciona suporte para o driver X')
+1. FaÃ§a um fork do projeto  
+2. Crie uma branch (`git checkout -b feature/NomeDaFeature`)  
+3. Commit (`git commit -m 'feat: Adiciona suporte para o driver X'`)  
+4. Push (`git push origin feature/NomeDaFeature`)  
+5. Abra um Pull Request  
 
-Faça o Push para a Branch (git push origin feature/DriverNovo)
+---
 
-Abra um Pull Request
+## ğŸ“œ LicenÃ§a
 
-???? Licença
-Distribuído sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
+DistribuÃ­do sob a licenÃ§a MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.  
+
+---
 
 <div align="center">
-<h3>?? Se este projeto te ajudou, considere dar uma estrela no repositório! ??</h3>
+  <h3>â­ Se este projeto te ajudou, considere dar uma estrela no repositÃ³rio!</h3>
 </div>
-
