@@ -1,10 +1,4 @@
 
------
-
-### README.md - Versão Profissional
-
-Copie e cole todo o conteúdo abaixo no seu arquivo `README.md`.
-
 ````markdown
 <div align="center">
   <br />
