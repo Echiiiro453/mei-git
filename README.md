@@ -1,5 +1,4 @@
----
-
+ 
 ````markdown
 # 🛠️ MEI Git
 
@@ -124,5 +123,4 @@ Veja `LICENSE` para mais informações.
 
 ---
 
-Quer que eu já adicione **badges prontos** (tipo versão, distros suportadas, licença, status do build) nesse README também?
 ```
