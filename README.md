@@ -48,7 +48,7 @@
 ## 🎥 Demonstração
 
 <p align="center">
-  <img src="https://i.imgur.com/j1uZn7w.gif" alt="Demonstração do MEI Git" width="700"/>
+  <img src="https://imgur.com/DGVkhmq" alt="Demonstração do MEI Git" width="700"/>
 </p>
 
 ---
