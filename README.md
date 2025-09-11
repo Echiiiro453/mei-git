@@ -1,6 +1,6 @@
- 
+
 ````markdown
-# 🛠️ MEI Git
+# � ️ MEI Git
 
 **MEI Git** é um gerenciador de drivers automatizado para Linux.  
 Ele detecta o hardware do seu PC (Wi-Fi, placa de vídeo, rede, impressoras, etc.) e baixa/instala o driver correto direto da fonte (repositório Git, pacotes da distro ou scripts).

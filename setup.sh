@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# setup.sh - Instala dependências essenciais para o MEI Git
-
-set -e
+# setup.sh - Instala dependências essenciais para o MEI Git (v2, com suporte a Deepin)
 
 echo "???? Iniciando setup do MEI Git..."
 
@@ -22,8 +20,9 @@ install_packages() {
     local pkgs="$1"
     echo "???? Detectada distro: $OS. Instalando pacotes: $pkgs"
 
+    # Adicionamos "deepin" na mesma regra de "ubuntu" e "debian"
     case "$OS" in
-        "ubuntu" | "debian" | "linuxmint")
+        "ubuntu" | "debian" | "linuxmint" | "deepin")
             sudo apt-get update
             sudo apt-get install -y $pkgs
             ;;
@@ -38,35 +37,29 @@ install_packages() {
             ;;
         *)
             echo "???? Distribuição '$OS' não suportada por este script."
-            echo "   Instale manualmente: $pkgs"
+            echo "Por favor, instale manualmente: $pkgs"
+            return 1 # Retorna um código de erro
             ;;
     esac
+
+    if [ $? -ne 0 ]; then
+        echo "?? Falha na instalação das dependências. Verifique os erros acima."
+        exit 1
+    fi
 }
 
 # --- Lógica Principal ---
 detect_distro
 
 # Define os pacotes baseados na distro
-case "$OS" in
-    "ubuntu" | "debian" | "linuxmint")
-        PACKAGES="git dkms build-essential linux-headers-$(uname -r) hplip"
-        ;;
-    "fedora" | "rhel" | "centos")
-        PACKAGES="git gcc make dkms kernel-devel hplip"
-        ;;
-    "arch")
-        PACKAGES="git base-devel dkms linux-headers hplip"
-        ;;
-    "opensuse-tumbleweed" | "opensuse-leap")
-        PACKAGES="git gcc make dkms kernel-devel hplip"
-        ;;
-    *)
-        PACKAGES="git dkms build-essential linux-headers hplip"
-        ;;
-esac
+if [ "$OS" == "arch" ]; then
+    PACKAGES="git dkms base-devel linux-headers"
+else
+    PACKAGES="git dkms build-essential linux-headers-$(uname -r)"
+fi
 
 install_packages "$PACKAGES"
 
 echo "?? Setup concluído! O MEI Git está pronto para ser usado."
-echo "   Para criar o comando global rode:"
+echo "   Para criar o comando global, rode o seguinte comando:"
 echo "   sudo ln -sf \$(pwd)/mei_git.py /usr/local/bin/mei-git"
