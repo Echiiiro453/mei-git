@@ -1,5 +1,3 @@
-
-````markdown
 <div align="center">
   <br />
   <p>
@@ -58,31 +56,24 @@ sudo ./setup.sh
 
 # 3. Crie o comando global para usar 'mei-git' de qualquer lugar
 sudo ln -sf "$(pwd)/mei_git.py" /usr/local/bin/mei-git
-````
+Pronto! Agora o comando mei-git está disponível em todo o seu sistema.
 
-Pronto\! Agora o comando `mei-git` está disponível em todo o seu sistema.
-
------
-
-## ?????? Como Usar
-
+?????? Como Usar
 O fluxo de trabalho é simples: primeiro escaneie para um diagnóstico, depois instale o que for necessário.
 
-### 1\. Escanear Hardware
+1. Escanear Hardware
+Use scan para ver o que o MEI Git detecta no seu sistema. É um comando seguro que não instala ou modifica nada.
 
-Use `scan` para ver o que o MEI Git detecta no seu sistema. É um comando seguro que não instala ou modifica nada.
+Bash
 
-```bash
 mei-git scan
-```
+O comando scan também pode mostrar quais drivers do banco de dados são compatíveis com seu hardware e se os módulos já estão carregados no kernel.
 
-> O comando `scan` também pode mostrar quais drivers do banco de dados são compatíveis com seu hardware e se os módulos já estão carregados no kernel.
+2. Instalar um Driver
+Use install seguido da categoria do dispositivo. O MEI Git irá escanear, encontrar um driver compatível e iniciar a instalação.
 
-### 2\. Instalar um Driver
+Bash
 
-Use `install` seguido da categoria do dispositivo. O MEI Git irá escanear, encontrar um driver compatível e iniciar a instalação.
-
-```bash
 # Para instalar um driver de Wi-Fi
 sudo mei-git install wifi
 
@@ -91,54 +82,40 @@ sudo mei-git install video
 
 # Para instalar um driver de Rede Ethernet
 sudo mei-git install ethernet
-```
-
 Se um driver compatível for encontrado, a instalação começará, mostrando cada passo no terminal.
 
------
-
-## ???? Estrutura do Projeto
-
-```
+???? Estrutura do Projeto
 mei-git/
 ?%%? mei_git.py      # O script principal da aplicação (CLI)
 ?%%? drivers.json    # O banco de dados com as "receitas" de instalação
 ?%%? setup.sh        # Script para instalar as dependências do sistema
 ?%%? README.md       # Esta documentação
-```
+???? Roadmap (Planos Futuros)
+[ ] Suporte a mais distribuições no script de setup (Void, Alpine, etc.).
 
------
+[ ] Detecção e instalação de drivers de vídeo AMD.
 
-## ???? Roadmap (Planos Futuros)
+[ ] Adicionar drivers proprietários de impressoras Canon/Epson.
 
-  - [ ] Suporte a mais distribuições no script de setup (Void, Alpine, etc.).
-  - [ ] Detecção e instalação de drivers de vídeo AMD.
-  - [ ] Adicionar drivers proprietários de impressoras Canon/Epson.
-  - [ ] Criar uma interface gráfica (GUI) simples para facilitar o uso.
+[ ] Criar uma interface gráfica (GUI) simples para facilitar o uso.
 
------
+???? Contribuindo
+Contribuições são o que tornam a comunidade open source incrível. Qualquer ajuda é muito bem-vinda.
 
-## ???? Contribuindo
+Faça um Fork do projeto
 
-Contribuições são o que tornam a comunidade open source incrível. Qualquer ajuda é **muito bem-vinda**.
+Crie sua Feature Branch (git checkout -b feature/DriverNovo)
 
-1.  Faça um Fork do projeto
-2.  Crie sua Feature Branch (`git checkout -b feature/DriverNovo`)
-3.  Faça o Commit de suas alterações (`git commit -m 'feat: Adiciona suporte para o driver X'`)
-4.  Faça o Push para a Branch (`git push origin feature/DriverNovo`)
-5.  Abra um Pull Request
+Faça o Commit de suas alterações (git commit -m 'feat: Adiciona suporte para o driver X')
 
------
+Faça o Push para a Branch (git push origin feature/DriverNovo)
 
-## ???? Licença
+Abra um Pull Request
 
-Distribuído sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
+???? Licença
+Distribuído sob a licença MIT. Veja o arquivo LICENSE para mais detalhes.
 
------
+<div align="center">
+<h3>?? Se este projeto te ajudou, considere dar uma estrela no repositório! ??</h3>
+</div>
 
-\<div align="center"\>
-\<h3\>?? Se este projeto te ajudou, considere dar uma estrela no repositório\! ??\</h3\>
-\</div\>
-
-```
-```
