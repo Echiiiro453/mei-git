@@ -56,6 +56,9 @@ sudo ./setup.sh
 
 # 3. Crie o comando global para usar 'mei-git' de qualquer lugar
 sudo ln -sf "$(pwd)/mei_git.py" /usr/local/bin/mei-git
+'''
+
+---
 Pronto! Agora o comando mei-git está disponível em todo o seu sistema.
 
 ?????? Como Usar
