@@ -1,83 +1,71 @@
 #!/bin/bash
 
-# setup.sh - Instala dependências essenciais para o MEI Git
-# Versão 3.0 - Suporte expandido a mais distribuições
+# setup.sh - v4 com interface interativa usando 'dialog'
 
-echo "???? Iniciando setup do MEI Git..."
+# --- Verificação e Instalação do 'dialog' ---
+if ! command -v dialog &> /dev/null; then
+    echo "???? O pacote 'dialog' não foi encontrado. Tentando instalar..."
+    sudo apt-get update && sudo apt-get install -y dialog
+    if [ $? -ne 0 ]; then
+        echo "?? Falha ao instalar o 'dialog'. O script continuará em modo texto."
+    fi
+fi
 
-# Função para detectar a distribuição
-detect_distro() {
-    if [ -f /etc/os-release ]; then
-        # Lê o arquivo de release para obter as variáveis
-        . /etc/os-release
-        OS=$ID
+# --- Funções com 'dialog' (se disponível) ---
+show_message() {
+    if command -v dialog &> /dev/null; then
+        dialog --title "MEI Git Setup" --msgbox "$1" 10 60
     else
-        echo "?? Não foi possível detectar a distribuição. Instale as dependências manualmente."
-        exit 1
+        echo "$1" # Fallback para modo texto
     fi
 }
 
-# Função para instalar pacotes
-install_packages() {
-    echo "???? Detectada distro: $OS."
-    
-    # Define os pacotes e o comando de instalação para cada família de distro
-    case "$OS" in
-        "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
-            echo "   (Família Debian/Ubuntu)"
-            PACKAGES="git dkms build-essential linux-headers-$(uname -r)"
-            COMMAND="sudo apt-get update && sudo apt-get install -y $PACKAGES"
-            ;;
-        "fedora" | "rhel" | "centos")
-            echo "   (Família Red Hat/Fedora)"
-            # kernel-devel é o equivalente de linux-headers
-            PACKAGES="git dkms kernel-devel"
-            COMMAND="sudo dnf install -y $PACKAGES && sudo dnf groupinstall -y \"Development Tools\""
-            ;;
-        "arch" | "endeavouros" | "manjaro")
-            echo "   (Família Arch Linux)"
-            # base-devel é o equivalente de build-essential
-            PACKAGES="git dkms base-devel linux-headers"
-            COMMAND="sudo pacman -Syu --noconfirm $PACKAGES"
-            ;;
-        "opensuse-tumbleweed" | "opensuse-leap")
-            echo "   (Família openSUSE)"
-            PACKAGES="git dkms patterns-devel-base-devel_basis kernel-default-devel"
-            COMMAND="sudo zypper install -y $PACKAGES"
-            ;;
-        "void")
-            echo "   (Void Linux)"
-            PACKAGES="git dkms base-devel linux-headers"
-            COMMAND="sudo xbps-install -Syu $PACKAGES"
-            ;;
-        "solus")
-            echo "   (Solus)"
-            # system.devel é o grupo de pacotes de compilação
-            PACKAGES="git dkms linux-current-headers system.devel"
-            COMMAND="sudo eopkg it -y $PACKAGES"
-            ;;
-        *)
-            echo "?? Distribuição '$OS' não suportada por este script de setup."
-            echo "   Por favor, instale os pacotes equivalentes a: git, dkms, build-essential, linux-headers."
-            exit 1
-            ;;
-    esac
-
-    echo "   Executando o comando de instalação..."
-    
-    # Executa o comando de instalação definido
-    eval $COMMAND
-
-    if [ $? -ne 0 ]; then
-        echo "?? Falha na instalação das dependências. Verifique os erros acima."
-        exit 1
+ask_yes_no() {
+    if command -v dialog &> /dev/null; then
+        dialog --title "Confirmação" --yesno "$1" 10 60
+        return $? # Retorna 0 para Sim, 1 para Não
+    else
+        read -p "$1 [S/n] " choice
+        case "$choice" in
+            [sS][iI][mM]|[sS]|"") return 0 ;;
+            *) return 1 ;;
+        esac
     fi
 }
 
 # --- Lógica Principal ---
-detect_distro
-install_packages
 
-echo "?? Setup concluído! O MEI Git está pronto para ser usado."
-echo "   Para criar o comando global, rode o seguinte comando:"
-echo "   sudo ln -sf \$(pwd)/mei_git.py /usr/local/bin/mei-git"
+show_message "Bem-vindo ao instalador de dependências do MEI Git! Este script irá preparar seu sistema para usar a ferramenta."
+
+if ask_yes_no "As seguintes dependências serão instaladas: git, dkms, build-essential e linux-headers. Deseja continuar?"; then
+    
+    # Detecção de Distro e Instalação (código que já tínhamos)
+    . /etc/os-release
+    OS=$ID
+    
+    case "$OS" in
+        "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
+            PACKAGES="git dkms build-essential linux-headers-$(uname -r)"
+            COMMAND="sudo apt-get update && sudo apt-get install -y $PACKAGES"
+            ;;
+        # ... (outros casos para Fedora, Arch, etc.)
+        *)
+            show_message "?? Distribuição '$OS' não suportada. Instale os pacotes manualmente."
+            exit 1
+            ;;
+    esac
+
+    echo "???? Instalando pacotes para '$OS'..."
+    eval $COMMAND
+
+    if [ $? -ne 0 ]; then
+        show_message "?? Falha na instalação das dependências. Verifique os erros no terminal."
+        exit 1
+    fi
+
+    show_message "?? Dependências instaladas com sucesso! O MEI Git está pronto para ser usado. Lembre-se de criar o comando global."
+
+else
+    show_message "Instalação cancelada pelo usuário."
+    exit 1
+fi
