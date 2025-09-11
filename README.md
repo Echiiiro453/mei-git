@@ -3,7 +3,7 @@
 <div align="center">
   <br />
   <p>
-    <a href="https://github.com/Echiiiro453/mei-git"><img src="https://i.imgur.com/uV33s2l.png" width="400" alt="mei-git-logo" /></a>
+    <a href="https://github.com/Echiiiro453/mei-git"><img src="https://imgur.com/a/IaDBv6j" width="400" alt="mei-git-logo" /></a>
   </p>
   <br />
   <p>
