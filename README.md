@@ -47,10 +47,7 @@
 
 ## 🎥 Demonstração
 
-<p align="center">
-  <img src="https://imgur.com/a/IaDBv6j.gif" alt="Demonstração do MEI Git em ação" width="700"/>
-</p>
----
+![Demonstração do MEI Git em ação](./assets/demonstracao.gif)
 
 ## 📥 Instalação
 
