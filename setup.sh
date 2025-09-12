@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setup.sh - v5.3 - Instalador com progresso real e modo não-interativo
+# setup.sh - v5.4 - Instalador profissional com barra de progresso
 
 # Garante que o script está sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
@@ -9,16 +9,14 @@ if [ "$EUID" -ne 0 ]; then
   exit 1
 fi
 
-# Força o locale para UTF-8 para máxima compatibilidade com caracteres
+# Força o locale para UTF-8 para máxima compatibilidade
 export LANG=C.UTF-8
 
 # --- Variáveis Globais ---
 LOG_FILE="/tmp/mei-git-setup.log"
->"$LOG_FILE" # Limpa o log antigo antes de começar
+>"$LOG_FILE" # Limpa o log antigo
 
-# --- Funções ---
-
-# Instala o 'dialog' silenciosamente se necessário
+# --- Funções de Interface ---
 install_dialog_if_missing() {
     if ! command -v dialog &> /dev/null; then
         echo "???? Pacote 'dialog' nao encontrado. Instalando..."
@@ -29,13 +27,10 @@ install_dialog_if_missing() {
             dnf install -y dialog
         elif command -v pacman &> /dev/null; then
             pacman -S --noconfirm dialog
-        elif command -v zypper &> /dev/null; then
-            zypper --non-interactive install dialog
         fi
     fi
 }
 
-# Funções para mostrar caixas de diálogo
 show_message() {
     if command -v dialog &> /dev/null; then
         dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 12 78
@@ -71,65 +66,70 @@ main() {
     fi
 
     # Detecção de Distro
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
-    else
-        show_message "?? Nao foi possivel detectar a distribuicao."
-        exit 1
-    fi
+    if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID; else
+        show_message "?? Nao foi possivel detectar a distribuicao."; exit 1; fi
 
     # Lógica de Instalação Multi-distro
     case "$OS" in
         "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
             PACKAGES="git dkms build-essential linux-headers-$(uname -r)"
-            # Força o modo não-interativo para o apt
-            COMMAND="export DEBIAN_FRONTEND=noninteractive; apt-get update && apt-get install -y $PACKAGES"
+            CMD_UPDATE="apt-get update"
+            CMD_INSTALL="apt-get install -y $PACKAGES"
             ;;
         "fedora" | "rhel" | "centos")
             PACKAGES="git dkms kernel-devel"
-            COMMAND="dnf install -y $PACKAGES && dnf groupinstall -y 'Development Tools'"
+            CMD_UPDATE="echo 'DNF nao precisa de update separado.'" # DNF faz isso junto com o install
+            CMD_INSTALL="dnf install -y $PACKAGES && dnf groupinstall -y 'Development Tools'"
             ;;
         "arch" | "endeavouros" | "manjaro")
             PACKAGES="git dkms base-devel linux-headers"
-            COMMAND="pacman -Syu --noconfirm $PACKAGES"
-            ;;
-        "opensuse-tumbleweed" | "opensuse-leap")
-            PACKAGES="git dkms patterns-devel-base-devel_basis kernel-default-devel"
-            COMMAND="zypper install -y $PACKAGES"
+            CMD_UPDATE="echo 'Pacman atualiza durante a instalacao.'"
+            CMD_INSTALL="pacman -Syu --noconfirm $PACKAGES"
             ;;
         *)
-            show_message "?? Distribuicao '$OS' nao suportada."
-            exit 1
-            ;;
+            show_message "?? Distribuicao '$OS' nao suportada."; exit 1 ;;
     esac
 
-    # --- NOVO BLOCO DE INSTALAÇÃO COM PROGRESSO REAL ---
-    if command -v dialog &> /dev/null; then
-        # Roda o comando de instalação em segundo plano, enviando a saída para o log
-        (eval $COMMAND) > "$LOG_FILE" 2>&1 &
-        INSTALL_PID=$!
-
-        # Mostra o conteúdo do log em tempo real com --tailboxbg
-        dialog --title "Instalando Dependencias para '$OS'..." --tailboxbg "$LOG_FILE" 25 90
+    # --- NOVO BLOCO DE INSTALAÇÃO COM BARRA DE PROGRESSO ---
+    (
+        # Etapa 1: Update (25%)
+        echo 25
+        echo "XXX"
+        echo "Atualizando lista de pacotes..."
+        echo "XXX"
+        eval $CMD_UPDATE > "$LOG_FILE" 2>&1
         
-        # Espera o processo de instalação terminar
-        wait $INSTALL_PID
+        # Etapa 2: Install (75%)
+        echo 75
+        echo "XXX"
+        echo "Instalando dependencias: $PACKAGES"
+        echo "XXX"
+        eval $CMD_INSTALL >> "$LOG_FILE" 2>&1
         INSTALL_STATUS=$?
-    else
-        echo "???? Executando comando de instalacao..."
-        eval $COMMAND
-        INSTALL_STATUS=$?
-    fi
-    
-    if [ $INSTALL_STATUS -ne 0 ]; then
-        show_message "?? Falha na instalacao das dependencias. Verifique os erros no terminal."
+        
+        # Etapa 3: Finish (100%)
+        echo 100
+        echo "XXX"
+        echo "Finalizando..."
+        echo "XXX"
+        sleep 1
+        
+        # Salva o status final da instalação
+        echo $INSTALL_STATUS > /tmp/mei-git-status.txt
+
+    ) | dialog --title "Progresso da Instalação" --gauge "Iniciando..." 10 75 0
+
+    FINAL_STATUS=$(cat /tmp/mei-git-status.txt)
+    rm /tmp/mei-git-status.txt
+
+    if [ $FINAL_STATUS -ne 0 ]; then
+        show_message "?? Falha na instalacao das dependencias. Verifique o log em $LOG_FILE para mais detalhes."
         exit 1
     fi
 
     # Mensagem final de sucesso
     FINAL_CMD="ln -sf \"\$(pwd)/mei_git\" /usr/local/bin/mei-git"
-    show_message "?? Dependencias instaladas com sucesso!\\n\\nO MEI Git está pronto para o proximo passo."
+    show_message "?? Dependencias instaladas com sucesso!\\n\\nO MEI Git está pronto."
     
     clear
     echo "=================================================================="
