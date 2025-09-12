@@ -1,23 +1,20 @@
 #!/bin/bash
 
-# setup.sh - v5.5 - Instalador profissional com progresso pacote a pacote
+# setup.sh - v5.6 - Instalador com verificação secundária de gerenciador de pacotes
 
 # Garante que o script está sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
-  echo "?? Erro: Este script precisa ser executado com privilegios de root."
+  echo "?? Erro: Este script precisa ser executado com privilégios de root."
   echo "   Por favor, rode com: sudo ./setup.sh"
   exit 1
 fi
 
 # Força o locale para UTF-8 para máxima compatibilidade
 export LANG=C.UTF-8
-
-# --- Variáveis Globais ---
 LOG_FILE="/tmp/mei-git-setup.log"
->"$LOG_FILE" # Limpa o log antigo
+>"$LOG_FILE"
 
 # --- Funções de Interface ---
-# (As funções 'install_dialog_if_missing', 'show_message' e 'ask_yes_no' continuam as mesmas)
 install_dialog_if_missing() {
     if ! command -v dialog &> /dev/null; then
         echo "???? Pacote 'dialog' nao encontrado. Instalando..."
@@ -51,94 +48,108 @@ ask_yes_no() {
     fi
 }
 
-# --- Lógica Principal ---
-main() {
-    install_dialog_if_missing
+# --- Funções de Instalação por Família ---
 
-    WELCOME_TEXT="Bem-vindo ao instalador de dependencias do MEI Git!\n\nEste script ira preparar seu sistema para compilar e instalar drivers."
-    show_message "$WELCOME_TEXT"
-
-    CONFIRM_TEXT="O script ira detectar sua distribuicao e instalar os pacotes necessarios (como git, dkms, etc).\n\nDeseja continuar?"
-    if ! ask_yes_no "$CONFIRM_TEXT"; then
-        show_message "Instalacao cancelada pelo usuario."
-        exit 0
-    fi
-
-    # Detecção de Distro
-    if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID; else
-        show_message "?? Nao foi possivel detectar a distribuicao."; exit 1; fi
-
-    # Define pacotes e comandos baseados na distro
-    case "$OS" in
-        "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
-            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)")
-            CMD_UPDATE="apt-get update"
-            CMD_INSTALL="apt-get install -y"
-            ;;
-        "fedora" | "rhel" | "centos")
-            PACKAGES=("git" "dkms" "kernel-devel" "Development Tools") # Development Tools é um grupo
-            CMD_UPDATE="echo 'DNF nao precisa de update separado.'"
-            CMD_INSTALL="dnf install -y"
-            CMD_GROUP_INSTALL="dnf groupinstall -y"
-            ;;
-        "arch" | "endeavouros" | "manjaro")
-            PACKAGES=("git" "dkms" "base-devel" "linux-headers")
-            CMD_UPDATE="echo 'Pacman atualiza durante a instalacao.'"
-            CMD_INSTALL="pacman -S --noconfirm"
-            ;;
-        *)
-            show_message "?? Distribuicao '$OS' nao suportada."; exit 1 ;;
-    esac
-
-    # --- NOVO BLOCO DE INSTALAÇÃO DETALHADA ---
-    
-    # Prepara a instalação
+run_install_debian_family() {
+    PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)")
+    CMD_UPDATE="apt-get update"
+    CMD_INSTALL="apt-get install -y"
     TOTAL_PACKAGES=${#PACKAGES[@]}
-    INSTALLED_COUNT=0
-    
-    # Bloco de comandos que será enviado para a barra de progresso
+
     (
-        # Etapa de Update (se aplicável)
-        echo 10
-        echo "XXX"
-        echo "Atualizando lista de pacotes..."
-        echo "XXX"
+        echo 10; echo "XXX\nAtualizando lista de pacotes (apt)...\nXXX"
         eval $CMD_UPDATE > "$LOG_FILE" 2>&1
         
-        # Loop para instalar cada pacote individualmente
+        INSTALLED_COUNT=0
         for pkg in "${PACKAGES[@]}"; do
-            ((INSTALLED_COUNT++))
-            PERCENTAGE=$((INSTALLED_COUNT * 80 / TOTAL_PACKAGES + 10)) # Calcula a porcentagem (de 10 a 90)
-            
-            echo $PERCENTAGE
-            echo "XXX"
-            echo "Instalando: $pkg ($INSTALLED_COUNT de $TOTAL_PACKAGES)..."
-            echo "XXX"
+            ((INSTALLED_COUNT++)); PERCENTAGE=$((INSTALLED_COUNT * 80 / TOTAL_PACKAGES + 10))
+            echo $PERCENTAGE; echo "XXX\nInstalando: $pkg ($INSTALLED_COUNT de $TOTAL_PACKAGES)...\nXXX"
+            eval "$CMD_INSTALL $pkg" >> "$LOG_FILE" 2>&1
+            if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
+        done
+        
+        echo 100; echo "XXX\nFinalizando...\nXXX"; sleep 1
+        echo 0 > /tmp/mei-git-status.txt
+    ) | dialog --title "Instalando para Familia Debian/Ubuntu" --gauge "Iniciando..." 10 75 0
+}
 
-            # Lógica especial para grupos de pacotes (como no Fedora)
-            if [[ "$pkg" == "Development Tools" && -n "$CMD_GROUP_INSTALL" ]]; then
+run_install_fedora_family() {
+    PACKAGES=("git" "dkms" "kernel-devel" "Development Tools")
+    CMD_INSTALL="dnf install -y"
+    CMD_GROUP_INSTALL="dnf groupinstall -y"
+    TOTAL_PACKAGES=${#PACKAGES[@]}
+
+    (
+        INSTALLED_COUNT=0
+        for pkg in "${PACKAGES[@]}"; do
+            ((INSTALLED_COUNT++)); PERCENTAGE=$((INSTALLED_COUNT * 100 / TOTAL_PACKAGES))
+            echo $PERCENTAGE; echo "XXX\nInstalando: $pkg ($INSTALLED_COUNT de $TOTAL_PACKAGES)...\nXXX"
+            if [[ "$pkg" == "Development Tools" ]]; then
                 eval "$CMD_GROUP_INSTALL \"$pkg\"" >> "$LOG_FILE" 2>&1
             else
                 eval "$CMD_INSTALL $pkg" >> "$LOG_FILE" 2>&1
             fi
-
-            # Se um pacote falhar, para o script
-            if [ $? -ne 0 ]; then
-                echo 1 > /tmp/mei-git-status.txt # Sinaliza erro
-                exit
-            fi
+            if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
         done
-        
-        # Etapa final
-        echo 100
-        echo "XXX"
-        echo "Finalizando..."
-        echo "XXX"
-        sleep 1
-        echo 0 > /tmp/mei-git-status.txt # Sinaliza sucesso
+        echo 0 > /tmp/mei-git-status.txt
+    ) | dialog --title "Instalando para Familia Fedora/RHEL" --gauge "Iniciando..." 10 75 0
+}
 
-    ) | dialog --title "Instalando Dependencias para '$OS'" --gauge "Iniciando..." 10 75 0
+run_install_arch_family() {
+    PACKAGES=("git" "dkms" "base-devel" "linux-headers")
+    CMD_INSTALL="pacman -S --noconfirm"
+    TOTAL_PACKAGES=${#PACKAGES[@]}
+    
+    (
+        INSTALLED_COUNT=0
+        for pkg in "${PACKAGES[@]}"; do
+            ((INSTALLED_COUNT++)); PERCENTAGE=$((INSTALLED_COUNT * 100 / TOTAL_PACKAGES))
+            echo $PERCENTAGE; echo "XXX\nInstalando: $pkg ($INSTALLED_COUNT de $TOTAL_PACKAGES)...\nXXX"
+            eval "$CMD_INSTALL $pkg" >> "$LOG_FILE" 2>&1
+            if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
+        done
+        echo 0 > /tmp/mei-git-status.txt
+    ) | dialog --title "Instalando para Familia Arch Linux" --gauge "Iniciando..." 10 75 0
+}
 
+
+# --- Lógica Principal ---
+main() {
+    install_dialog_if_missing
+
+    show_message "Bem-vindo ao instalador de dependencias do MEI Git!\n\nEste script ira preparar seu sistema para compilar e instalar drivers."
+    if ! ask_yes_no "O script ira detectar sua distribuicao e instalar os pacotes necessarios.\n\nDeseja continuar?"; then
+        show_message "Instalacao cancelada pelo usuario."; exit 0; fi
+
+    if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID; else
+        show_message "?? Nao foi possivel detectar a distribuicao."; exit 1; fi
+
+    case "$OS" in
+        "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
+            run_install_debian_family
+            ;;
+        "fedora" | "rhel" | "centos")
+            run_install_fedora_family
+            ;;
+        "arch" | "endeavouros" | "manjaro")
+            run_install_arch_family
+            ;;
+        *)
+            show_message "Distro '$OS' nao reconhecida diretamente.\\n\\nTentando detectar o gerenciador de pacotes como um 'Plano B'..."
+            
+            if command -v apt-get &> /dev/null; then
+                run_install_debian_family
+            elif command -v dnf &> /dev/null; then
+                run_install_fedora_family
+            elif command -v pacman &> /dev/null; then
+                run_install_arch_family
+            else
+                show_message "?? Nenhum gerenciador de pacotes conhecido (apt, dnf, pacman) foi encontrado."
+                exit 1
+            fi
+            ;;
+    esac
+    
     FINAL_STATUS=$(cat /tmp/mei-git-status.txt)
     rm /tmp/mei-git-status.txt
 
@@ -147,7 +158,6 @@ main() {
         exit 1
     fi
 
-    # Mensagem final de sucesso
     FINAL_CMD="ln -sf \"\$(pwd)/mei_git\" /usr/local/bin/mei-git"
     show_message "?? Dependencias instaladas com sucesso!\\n\\nO MEI Git está pronto para o proximo passo."
     
@@ -162,5 +172,4 @@ main() {
     echo "=================================================================="
 }
 
-# Executa a função principal
 main
