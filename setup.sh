@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# setup.sh - v5.1 - Instalador profissional com progresso em tempo real
+# setup.sh - v5.2 - Instalador com quebra de linha manual para maior compatibilidade
 
 # Garante que o script está sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
-  echo "?? Erro: Este script precisa ser executado com privilegios de root."
+  echo "?? Erro: Este script precisa ser executado com privilégios de root."
   echo "   Por favor, rode com: sudo ./setup.sh"
   exit 1
 fi
@@ -13,7 +13,6 @@ fi
 export LANG=C.UTF-8
 
 # --- Verificação e Instalação do 'dialog' ---
-# A função agora é mais silenciosa e só mostra algo se precisar instalar
 install_dialog_if_missing() {
     if ! command -v dialog &> /dev/null; then
         echo "???? Pacote 'dialog' nao encontrado. Instalando..."
@@ -36,7 +35,8 @@ install_dialog_if_missing() {
 # --- Funções de Interface ---
 show_message() {
     if command -v dialog &> /dev/null; then
-        dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 10 70
+        # Aumentamos o tamanho da caixa para 12 de altura e 78 de largura
+        dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 12 78
     else
         echo -e "\n$1\n"
     fi
@@ -44,7 +44,7 @@ show_message() {
 
 ask_yes_no() {
     if command -v dialog &> /dev/null; then
-        dialog --title "Confirmacao" --cr-wrap --yesno "$1" 10 70
+        dialog --title "Confirmacao" --cr-wrap --yesno "$1" 12 78
         return $?
     else
         read -p "$1 [S/n] " choice
@@ -59,9 +59,17 @@ ask_yes_no() {
 main() {
     install_dialog_if_missing
 
-    show_message "Bem-vindo ao instalador de dependencias do MEI Git!\\n\\nEste script ira preparar seu sistema para compilar e instalar drivers."
+    # Mensagem de boas-vindas formatada manualmente
+    WELCOME_TEXT="Bem-vindo ao instalador de dependencias do MEI Git!"
+    WELCOME_TEXT+="\n\n"
+    WELCOME_TEXT+="Este script ira preparar seu sistema para compilar e instalar drivers."
+    show_message "$WELCOME_TEXT"
 
-    if ! ask_yes_no "O script ira detectar sua distribuicao e instalar os pacotes necessarios (como git, dkms, etc.).\\n\\nDeseja continuar?"; then
+    # Mensagem de confirmação formatada manualmente
+    CONFIRM_TEXT="O script ira detectar sua distribuicao e instalar os pacotes"
+    CONFIRM_TEXT+="\nnecessarios (como git, dkms, build-essential, etc)."
+    CONFIRM_TEXT+="\n\nDeseja continuar?"
+    if ! ask_yes_no "$CONFIRM_TEXT"; then
         show_message "Instalacao cancelada pelo usuario."
         exit 0
     fi
@@ -79,7 +87,6 @@ main() {
     case "$OS" in
         "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
             PACKAGES="git dkms build-essential linux-headers-$(uname -r)"
-            # Comando sem 'sudo' porque o script já está rodando como root
             COMMAND="apt-get update && apt-get install -y $PACKAGES"
             ;;
         "fedora" | "rhel" | "centos")
@@ -95,18 +102,19 @@ main() {
             COMMAND="zypper install -y $PACKAGES"
             ;;
         *)
-            show_message "?? Distribuicao '$OS' nao suportada.\\n\\nInstale manualmente os pacotes: git, dkms, build-essential, linux-headers."
+            ERROR_TEXT="?? Distribuicao '$OS' nao suportada.\\n\\n"
+            ERROR_TEXT+="Por favor, instale manualmente os pacotes equivalentes a:\\n"
+            ERROR_TEXT+="git, dkms, build-essential, linux-headers."
+            show_message "$ERROR_TEXT"
             exit 1
             ;;
     esac
 
-    # --- A MÁGICA ACONTECE AQUI ---
     # Usa --programbox para mostrar a saída do comando em tempo real
     if command -v dialog &> /dev/null; then
         dialog --title "Instalando Dependencias para '$OS'..." --programbox "$COMMAND" 25 90
     else
         echo "???? Executando comando de instalacao..."
-        # Executa o comando diretamente se o dialog não estiver disponível
         eval $COMMAND
     fi
     
@@ -117,11 +125,13 @@ main() {
         exit 1
     fi
 
-    # Mensagem final de sucesso
-    FINAL_CMD="ln -sf \"\$(pwd)/mei_git.py\" /usr/local/bin/mei-git"
-    show_message "?? Dependencias instaladas com sucesso!\\n\\nO MEI Git está pronto para o proximo passo."
+    # Mensagem final de sucesso formatada manualmente
+    SUCCESS_TEXT="?? Dependencias instaladas com sucesso!\\n\\n"
+    SUCCESS_TEXT+="O MEI Git está pronto para o proximo passo."
+    show_message "$SUCCESS_TEXT"
     
     clear
+    FINAL_CMD="ln -sf \"\$(pwd)/mei_git.py\" /usr/local/bin/mei-git"
     echo "=================================================================="
     echo "?? Setup concluido com sucesso!"
     echo ""
