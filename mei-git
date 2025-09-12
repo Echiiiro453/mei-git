@@ -1,219 +1,205 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+# mei-git v2.4 - Implementação da instalação com TUI e barra de progresso
+
 import sys
 import os
 import json
 import subprocess
 import re
 import shutil
+import tempfile
 
-# --- Funções Auxiliares e de Carregamento ---
+# --- Configurações Iniciais ---
+try:
+    from dialog import Dialog
+    d = Dialog(dialog="dialog", autowidgetsize=True)
+    d.set_background_title("MEI Git - Assistente de Drivers para Linux")
+    DIALOG_AVAILABLE = True
+except ImportError:
+    DIALOG_AVAILABLE = False
 
-def run_cmd_stream(cmd):
-    """
-    Executa um comando no shell, mostrando a saída em tempo real.
-    Ideal para comandos longos como compilação ou instalação.
-    """
-    print(f"🔩 Executando: {cmd}")
+LOG_FILE = "/tmp/mei-git-install.log"
+
+# --- Funções Auxiliares ---
+
+def run_cmd_logged(cmd):
+    """Executa um comando e salva sua saída no log, retornando True/False."""
     try:
-        process = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
-        for line in iter(process.stdout.readline, ''):
-            print(f"    {line}", end='')
-        process.wait()
-        return process.returncode == 0
+        with open(LOG_FILE, "a", encoding='utf-8') as log:
+            log.write(f"\n--- Executando: {cmd} ---\n")
+            # Usamos Popen para garantir que a saída seja capturada corretamente
+            process = subprocess.Popen(cmd, shell=True, stdout=log, stderr=subprocess.STDOUT, text=True, bufsize=1)
+            process.wait()
+            return process.returncode == 0
     except Exception as e:
-        print(f"❌ Erro ao executar comando: {e}")
+        with open(LOG_FILE, "a", encoding='utf-8') as log:
+            log.write(f"❌ Erro ao tentar executar o comando: {e}\n")
         return False
 
-def run_cmd_get_output(cmd):
-    """Executa um comando e retorna sua saída como string."""
-    return subprocess.getoutput(cmd)
-    
 def load_db(filename):
-    """Carrega um arquivo JSON e retorna um dicionário."""
     try:
-        with open(filename) as f:
-            return json.load(f)
+        with open(filename) as f: return json.load(f)
     except FileNotFoundError:
-        print(f"❌ Erro: Arquivo '{filename}' não encontrado.")
+        if DIALOG_AVAILABLE: d.msgbox(f"❌ Erro: Arquivo '{filename}' não encontrado.")
         return None
     except json.JSONDecodeError:
-        print(f"❌ Erro: O arquivo '{filename}' possui um formato JSON inválido.")
+        if DIALOG_AVAILABLE: d.msgbox(f"❌ Erro: O arquivo '{filename}' tem um formato JSON inválido.")
         return None
 
-# --- Funções de Detecção e Scan ---
-
 def detect_hardware_ids():
-    """Apenas detecta e retorna os IDs de hardware do sistema."""
-    detected_ids = set()
+    ids = set()
     try:
-        pci_output = run_cmd_get_output("lspci -nn")
-        pci_ids = re.findall(r'\[(\w{4}:\w{4})\]', pci_output)
-        detected_ids.update(pci_ids)
-        
-        usb_output = run_cmd_get_output("lsusb")
-        usb_ids = re.findall(r'ID (\w{4}:\w{4})', usb_output)
-        detected_ids.update(usb_ids)
-    except Exception as e:
-        print(f"⚠️ Não foi possível escanear o hardware: {e}")
-    return detected_ids
+        pci = subprocess.getoutput("lspci -nn"); usb = subprocess.getoutput("lsusb")
+        ids.update(re.findall(r'\[(\w{4}:\w{4})\]', pci)); ids.update(re.findall(r'ID (\w{4}:\w{4})', usb))
+    except Exception: pass
+    return ids
 
-def scan_and_identify_hardware():
-    """A função de scan inteligente."""
-    print("🧠 Carregando bancos de dados...")
-    hardware_db = load_db("hardware_db.json")
-    install_db = load_db("drivers_install.json")
+# --- Funções Principais com TUI ---
+
+def scan_tui():
+    """Função de scan que formata a saída para uma caixa de texto."""
+    d.infobox("🧠 Carregando bancos de dados e escaneando hardware...")
+    
+    hardware_db = load_db("hardware_db.json"); install_db = load_db("drivers_install.json")
     if not hardware_db or not install_db: return
 
-    print("🔍 Escaneando e identificando seu hardware...")
     detected_ids = detect_hardware_ids()
-    if not detected_ids: print("Nenhum dispositivo encontrado."); return
+    if not detected_ids:
+        d.msgbox("Nenhum dispositivo encontrado."); return
 
-    print("\n" + "="*50 + "\n💻 DIAGNÓSTICO DE HARDWARE DO SISTEMA\n" + "="*50 + "\n")
+    report_text = "💻 DIAGNÓSTICO DE HARDWARE DO SISTEMA 💻\n" + "="*60 + "\n\n"
+    
+    hw_lookup = {dev_id: {"name": name, "cat": cat, "com": det.get("comment", "")} for cat, devs in hardware_db.items() for name, det in devs.items() for dev_id in det.get("device_ids", [])}
+    install_lookup = {dev_id: {"name": name, "cat": cat} for cat, devs in install_db.items() for name, det in devs.items() for dev_id in det.get("device_ids", [])}
 
-    hw_lookup = {dev_id: {"name": name, "cat": cat, "com": det.get("comment", "")}
-                 for cat, devs in hardware_db.items() for name, det in devs.items() for dev_id in det.get("device_ids", [])}
-    install_lookup = {dev_id: {"name": name, "cat": cat}
-                      for cat, devs in install_db.items() for name, det in devs.items() for dev_id in det.get("device_ids", [])}
-
-    found_any = False
     for did in sorted(list(detected_ids)):
         if did in hw_lookup:
-            found_any = True
             info = hw_lookup[did]
-            desc = info.get("com", "N/A").replace("Driver genérico detectado para ", "")
-            
-            print(f"▶ [{info.get('cat', 'N/A').upper()}] ID: {did}\n  Nome: {desc}")
+            desc = info.get("com", "N/A").replace("Driver generico detectado para ", "")
+            report_text += f"▶ [{info.get('cat', 'N/A').upper()}] ID: {did}\n  Nome: {desc}\n"
             
             found_recipe = False
             for key, val in install_lookup.items():
                 if did.startswith(key):
-                    print(f"  Ação: Receita '{val.get('name')}' encontrada! ✅ [INSTALÁVEL]")
-                    print(f"        → Para instalar, rode: sudo mei-git install {val.get('cat')}")
-                    found_recipe = True
-                    break
+                    report_text += f"  Acao: Receita '{val.get('name')}' encontrada! ✅ [INSTALAVEL]\n"
+                    found_recipe = True; break
             if not found_recipe:
-                print("  Ação: Nenhuma receita de instalação encontrada. O driver do kernel deve ser suficiente.")
-            print("-" * 50)
+                report_text += "  Acao: Nenhuma receita de instalação encontrada.\n"
+            report_text += "-" * 60 + "\n"
     
-    if not found_any: print("Nenhum dispositivo detectado correspondeu ao banco de dados.")
+    report_filename = ""
+    try:
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".txt", encoding='utf-8') as tmp_file:
+            tmp_file.write(report_text)
+            report_filename = tmp_file.name
+        d.textbox(report_filename, height=0, width=0)
+    finally:
+        if os.path.exists(report_filename):
+            os.remove(report_filename)
 
-# --- Função de Instalação ---
 
-def install_driver(category):
-    """Motor de instalação que lê e executa as 'receitas'."""
+def install_tui():
+    """Interface TUI completa para o processo de instalação."""
     install_db = load_db("drivers_install.json")
     if not install_db: return
 
-    print("🔍 Escaneando hardware para encontrar um driver compatível...")
-    detected_ids = detect_hardware_ids()
-    if not detected_ids: print("❌ Não foi possível detectar hardware."); return
+    categories = list(install_db.keys())
+    menu_items = [(cat.capitalize(), "") for cat in categories]
+    code, tag = d.menu("Selecione a categoria do driver:", choices=menu_items, height=0, width=60)
 
-    target_driver = None
-    driver_name = ""
-    drivers_in_category = install_db.get(category, {})
-    
-    for name, details in drivers_in_category.items():
-        for db_id in details.get("device_ids", []):
-            if any(did.startswith(db_id) for did in detected_ids):
-                target_driver = details
-                driver_name = name
-                break
-        if target_driver:
-            break
-    
-    if not target_driver:
-        print(f"❌ Nenhum driver compatível para sua máquina foi encontrado na categoria '{category}'.")
-        return
+    if code == d.OK:
+        category_to_install = tag.lower()
+        d.infobox(f"🔍 Escaneando hardware para a categoria '{category_to_install}'...")
+        detected_ids = detect_hardware_ids()
         
-    print(f"✅ Driver compatível encontrado: '{driver_name}'. Iniciando instalação...")
-    print(f"   Comentário: {target_driver.get('comment', 'N/A')}")
-
-    # A lógica de instalação começa aqui
-    install_type = target_driver.get("type")
-    
-    # Instalação via APT (Debian-based)
-    if install_type == "apt":
-        package = target_driver.get("package")
-        if not package:
-            print("❌ Erro na receita: tipo 'apt' sem a chave 'package'."); return
-        print("\n[Passo 1/1] Instalando pacote via APT...")
-        if not run_cmd_stream(f"sudo apt-get install -y {package}"):
-            print(f"❌ Falha ao instalar o pacote '{package}'."); return
-    
-    # Instalação via Shell
-    elif install_type == "shell":
-        build_steps = target_driver.get("build_steps", [])
-        if not build_steps:
-            print("❌ Erro na receita: tipo 'shell' sem a chave 'build_steps'."); return
-        print("\n[Passo 1/1] Executando comandos shell...")
-        for step in build_steps:
-            if not run_cmd_stream(step):
-                print(f"❌ Falha ao executar o comando: '{step}'."); return
-
-    # Instalação via Git
-    elif install_type == "git":
-        repo_url = target_driver.get("repo")
-        repo_name = repo_url.split("/")[-1].replace(".git", "")
+        target_driver = None; driver_name = ""
+        for name, details in install_db.get(category_to_install, {}).items():
+            for db_id in details.get("device_ids", []):
+                if any(did.startswith(db_id) for did in detected_ids):
+                    target_driver, driver_name = details, name; break
+            if target_driver: break
         
-        print(f"\n[Passo 1/3] Clonando repositório de '{repo_name}'...")
-        if os.path.exists(repo_name):
-            print(f"   - O diretório '{repo_name}' já existe. Pulando clone.")
-        elif not run_cmd_stream(f"git clone {repo_url}"):
-            print("❌ Falha ao clonar o repositório."); return
+        if not target_driver:
+            d.msgbox(f"❌ Nenhum driver compativel foi encontrado para a categoria '{category_to_install}'."); return
 
-        try:
-            original_dir = os.getcwd()
-            os.chdir(repo_name)
-
-            print(f"\n[Passo 2/3] Executando passos de compilação...")
-            build_steps = target_driver.get("build_steps", [])
-            for step in build_steps:
-                if not run_cmd_stream(step):
-                    print(f"❌ Falha no passo de compilação: '{step}'."); os.chdir(original_dir); return
+        confirm_text = f"✅ Driver compativel encontrado: '{driver_name}'.\n\n{target_driver.get('comment', '')}\n\nDeseja iniciar a instalacao?"
+        if d.yesno(confirm_text, height=12, width=70) == d.OK:
+            open(LOG_FILE, "w").close() # Limpa o log antigo
             
-            os.chdir(original_dir)
-        except Exception as e:
-            print(f"❌ Erro durante o processo de build: {e}"); os.chdir(original_dir); return
+            d.gauge_start(text="Iniciando...", percent=0)
+            success = True
+            install_type = target_driver.get("type")
+            
+            if install_type == "git":
+                repo_url = target_driver.get("repo")
+                repo_name = repo_url.split("/")[-1].replace(".git", "")
+                
+                d.gauge_update(25, text=f"Passo 1/3: Clonando repositorio...")
+                if os.path.exists(repo_name):
+                    with open(LOG_FILE, "a") as log: log.write(f"Diretorio '{repo_name}' ja existe. Pulando clone.\n")
+                elif not run_cmd_logged(f"git clone {repo_url}"): success = False
+                
+                if success:
+                    try:
+                        original_dir = os.getcwd(); os.chdir(repo_name)
+                        d.gauge_update(60, text="Passo 2/3: Compilando e instalando...")
+                        for step in target_driver.get("build_steps", []):
+                            if not run_cmd_logged(step): success = False; break
+                        os.chdir(original_dir)
+                    except Exception: success = False
 
-    else:
-        print(f"❌ Tipo de instalação desconhecido na receita: '{install_type}'")
-        return
+            elif install_type in ["apt", "shell"]:
+                 d.gauge_update(50, text=f"Passo 1/1: Executando comandos...")
+                 deps = target_driver.get("package") if install_type == "apt" else " ".join(target_driver.get("build_steps", []))
+                 cmd = f"sudo apt-get install -y {deps}" if install_type == "apt" else " && ".join(target_driver.get("build_steps", []))
+                 if not run_cmd_logged(cmd): success = False
 
-    print(f"\n[Passo 3/3] Verificando pós-instalação...")
-    module = target_driver.get("module")
-    if module:
-        print(f"   - Tentando carregar o módulo '{module}'...")
-        run_cmd_stream(f"sudo modprobe {module}")
-        if module in run_cmd_get_output("lsmod"):
-            print(f"   - ✅ Módulo '{module}' carregado com sucesso no kernel.")
+            d.gauge_update(90, text="Passo 3/3: Finalizando...")
+            
+            module = target_driver.get("module")
+            if module and success: run_cmd_logged(f"sudo modprobe {module}")
+
+            d.gauge_update(100, text="Concluido!")
+            d.gauge_stop()
+
+            if success:
+                d.msgbox("✅ Instalacao concluida com sucesso!")
+            else:
+                d.msgbox("❌ A instalacao falhou. O log de erro sera exibido.", height=8, width=60)
+                with open(LOG_FILE, "r") as log:
+                    d.textbox(log.read(), height=0, width=0)
         else:
-            print(f"   - ⚠️ Módulo '{module}' não foi encontrado no kernel após a instalação. Pode ser necessário reiniciar.")
+            d.msgbox("Instalacao cancelada pelo usuario.")
 
-    print(f"\n🎉 Processo de instalação para '{driver_name}' concluído!")
 
-# --- Função Principal (CLI) ---
-def main():
-    """Ponto de entrada do script."""
-    args = sys.argv[1:]
-    if not args:
-        print("Uso: mei-git <comando> [argumento]")
-        print("Comandos disponíveis:")
-        print("  scan          - Faz um diagnóstico completo do hardware e sugere ações.")
-        print("  install <cat> - Instala um driver por categoria (ex: wifi, video).")
-        sys.exit(1)
+def main_tui():
+    """Controlador principal que exibe o menu TUI."""
+    while True:
+        code, tag = d.menu("Selecione uma opção:",
+                           choices=[("1", "Diagnosticar Hardware (Scan)"),
+                                    ("2", "Instalar Driver por Categoria"),
+                                    ("3", "Sair")],
+                                    width=70, height=10)
+        if code == d.OK:
+            if tag == "1": scan_tui()
+            elif tag == "2": install_tui()
+            elif tag == "3": break
+        else: break
+    os.system('clear')
 
-    command = args[0]
-    if command == "scan":
-        scan_and_identify_hardware()
-    elif command == "install":
-        if len(args) < 2:
-            print("❌ Erro: Especifique a categoria. Uso: mei-git install <categoria>"); sys.exit(1)
-        
-        category_to_install = args[1]
-        install_driver(category_to_install)
-    else:
-        print(f"Comando desconhecido: '{command}'")
-        sys.exit(1)
+# --- Modo CLI (Placeholder para futuras implementações) ---
+def main_cli(args):
+    """Controlador do modo de linha de comando."""
+    print("Modo CLI nao implementado. Rode 'mei-git' sem argumentos para a interface grafica.")
 
+# --- Ponto de Entrada Principal ---
 if __name__ == "__main__":
-    main()
+    if not DIALOG_AVAILABLE and len(sys.argv) == 1:
+        sys.exit(1)
+
+    if len(sys.argv) > 1:
+        main_cli(sys.argv[1:])
+    else:
+        main_tui()

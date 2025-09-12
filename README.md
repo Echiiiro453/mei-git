@@ -1,19 +1,13 @@
 # MEI Git
 
 <div align="center">
-  <br />
   <p>
     <a href="https://github.com/Echiiiro453/mei-git"><img src="./assets/logo.png" width="400" alt="mei-git-logo" /></a>
   </p>
-  <br />
+  <p><b>O canivete suíço para instalação de drivers no Linux.</b></p>
+  <p>Ferramenta com interface no terminal (TUI) que detecta seu hardware e instala drivers de Wi-Fi, vídeo, rede e periféricos de forma automatizada.</p>
   <p>
-    <b>O canivete suíço para instalação de drivers no Linux.</b>
-  </p>
-  <p>
-    Detecta seu hardware e instala drivers de Wi-Fi, vídeo, rede e periféricos de forma automatizada.
-  </p>
-  <p>
-    <a href="#">
+    <a href="https://github.com/Echiiiro453/mei-git/blob/main/LICENSE">
       <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license" />
     </a>
     <a href="#">
@@ -27,21 +21,8 @@
 
 ---
 
-> Cansado de passar horas em fóruns obscuros procurando drivers compatíveis com Linux?  
-> O **MEI Git** automatiza todo o processo de detecção, download e instalação, usando um banco de dados curado com soluções para os hardwares mais comuns e problemáticos.
-
----
-
-## 🚀 Funcionalidades
-
-- 🔍 **Detecção Automática:** Identifica seu hardware (`lspci`, `lsusb`) e IDs de fabricante/dispositivo.  
-- 📂 **Banco de Dados Inteligente:** Usa `drivers.json` com “receitas” de instalação para cada hardware.  
-- ⚙️ **Múltiplos Métodos:** Suporte a instalação via `git clone` + compilação, gerenciadores de pacotes (`apt`, `dnf`, etc.) ou scripts `shell`.  
-- 🌍 **Ampla Cobertura:** Inclui drivers para:
-  - 📡 Wi-Fi & Ethernet (Realtek, Broadcom)  
-  - 🎮 Placas de Vídeo (NVIDIA legacy)  
-  - 🖨️ Impressoras (HP e outras)  
-  - 🔌 E muito mais...  
+> ⚡ Cansado de passar horas em fóruns obscuros procurando drivers compatíveis com Linux?  
+> O **MEI Git** automatiza a detecção, download e instalação usando um banco de dados curado para os hardwares mais comuns e problemáticos.
 
 ---
 
@@ -49,91 +30,82 @@
 
 ![Demonstração do MEI Git em ação](./assets/demonstracao.gif)
 
+> 🔔 **Importante:** Atualize o GIF acima para mostrar a nova interface TUI.
+
+---
+
+## 🚀 Funcionalidades
+
+- 🖥️ **Interface TUI:** Menu interativo no terminal, fácil de usar.
+- 🔍 **Detecção Precisa:** Usa `lspci` e `lsusb` para identificar o hardware.
+- 📦 **Instalação Automatizada:** Baseada em receitas no `drivers_install.json`.
+- 🛠️ **Múltiplos Métodos:** Suporte a `git clone` + compilação, pacotes (`apt`, `dnf` etc.) e scripts shell.
+- 🌍 **Ampla Cobertura:** Drivers para Wi-Fi (Realtek, Broadcom, MediaTek), vídeo (NVIDIA), impressoras (HP) e mais.
+
+---
+
 ## 📥 Instalação
 
-A instalação é feita em dois passos simples: rodar o script de setup e criar o comando global.
-
 ```bash
-# 1. Clone o repositório e entre na pasta
+# 1. Clone o repositório
 git clone https://github.com/Echiiiro453/mei-git.git
 cd mei-git
 
-# 2. Dê permissão de execução e rode o setup
+# 2. Permissão de execução e instalação
 chmod +x setup.sh
 sudo ./setup.sh
 
-# 3. Crie o comando global
+# 3. Criar comando global (o setup instrui no final)
 sudo ln -sf "$(pwd)/mei-git" /usr/local/bin/mei-git
 ```
 
-Pronto! Agora o comando `mei-git` está disponível em todo o sistema.  
+Agora você pode rodar `mei-git` de qualquer lugar. ✅
 
 ---
 
 ## 💻 Como Usar
 
-Fluxo de trabalho simples: **primeiro escaneie o hardware, depois instale o que precisar**.
+### 🔹 Modo Interativo (TUI) — Recomendado
+Interface gráfica no terminal que guia o usuário passo a passo:
 
-### 1. Escanear Hardware
 ```bash
+mei-git
+```
+
+Opções incluem **Diagnosticar Hardware (Scan)** e **Instalar Driver por Categoria**.
+
+---
+
+### 🔹 Modo Linha de Comando (CLI) — Para Automação
+Ideal para usuários avançados ou scripts:
+
+```bash
+# Diagnóstico rápido
 mei-git scan
-```
-Mostra o que o MEI Git detecta e quais drivers são compatíveis.  
 
-### 2. Instalar um Driver
-```bash
-# Wi-Fi
+# Instalar driver de Wi-Fi
 sudo mei-git install wifi
-
-# Vídeo
-sudo mei-git install video
-
-# Rede Ethernet
-sudo mei-git install ethernet
-```
-Se um driver compatível for encontrado, a instalação começará automaticamente.
-
----
-
-## 📂 Estrutura do Projeto
-
-```
-mei-git/
-├── mei_git      # Script principal (CLI)
-├── drivers.json    # Banco de dados com receitas de instalação
-├── setup.sh        # Script para instalar dependências
-└── README.md       # Esta documentação
 ```
 
 ---
 
-## 🛠️ Roadmap (Planos Futuros)
+## 🛤️ Roadmap
 
-- [ ] Suporte a mais distribuições no script de setup (Void, Alpine, etc.)  
-- [ ] Detecção e instalação de drivers AMD  
-- [ ] Suporte a drivers proprietários Canon/Epson  
-- [ ] Criar interface gráfica (GUI) simples  
+- [x] Interface TUI
+- [ ] Função "Adicionar Nova Receita" direto pela TUI
+- [ ] Instalação múltipla em um só comando (`mei-git install wifi video`)
+- [ ] Suporte a drivers de vídeo AMD
+- [ ] Releases oficiais em `.deb` e `.rpm`
 
 ---
 
 ## 🤝 Contribuindo
 
-Contribuições são muito bem-vindas!  
-
-1. Faça um fork do projeto  
-2. Crie uma branch (`git checkout -b feature/NomeDaFeature`)  
-3. Commit (`git commit -m 'feat: Adiciona suporte para o driver X'`)  
-4. Push (`git push origin feature/NomeDaFeature`)  
-5. Abra um Pull Request  
+Pull Requests são bem-vindos!  
+Antes de contribuir, confira as [issues abertas](https://github.com/Echiiiro453/mei-git/issues).
 
 ---
 
 ## 📜 Licença
 
-Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.  
-
----
-
-<div align="center">
-  <h3>⭐ Se este projeto te ajudou, considere dar uma estrela no repositório!</h3>
-</div>
+Distribuído sob licença **MIT**. Veja [LICENSE](./LICENSE) para mais informações.

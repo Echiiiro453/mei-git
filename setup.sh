@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setup.sh - v5.7 - Instalador com barra de progresso detalhada por etapas
+# setup.sh - v5.9 - Corrige a falta da dependência python3-dialog
 
 # Garante que o script está sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
@@ -15,7 +15,6 @@ LOG_FILE="/tmp/mei-git-setup.log"
 >"$LOG_FILE" # Limpa o log antigo
 
 # --- Funções de Interface ---
-# (As funções 'install_dialog_if_missing', 'show_message' e 'ask_yes_no' continuam as mesmas)
 install_dialog_if_missing() {
     if ! command -v dialog &> /dev/null; then
         echo "???? Pacote 'dialog' nao encontrado. Instalando..."
@@ -60,82 +59,67 @@ main() {
     if ! ask_yes_no "$CONFIRM_TEXT"; then
         show_message "Instalacao cancelada pelo usuario."; exit 0; fi
 
-    if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID; else
+    if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID_LIKE; OS_NAME=$ID; else
         show_message "?? Nao foi possivel detectar a distribuicao."; exit 1; fi
+    
+    if [ -z "$OS" ]; then
+        OS=$OS_NAME
+    fi
 
-    # Define pacotes e comandos baseados na distro
+    # Define pacotes e comandos baseados na família da distro
     case "$OS" in
-        "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
-            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)")
+        "debian" | "ubuntu" | "deepin" | "pop" | "mx")
+            # Adicionado "python3-dialog"
+            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)" "python3-dialog")
             CMD_UPDATE="apt-get update"
             CMD_INSTALL="apt-get install -y"
             ;;
         "fedora" | "rhel" | "centos")
-            PACKAGES=("git" "dkms" "kernel-devel" "Development Tools")
+            # Adicionado "python3-dialog"
+            PACKAGES=("git" "dkms" "kernel-devel" "python3-dialog" "Development Tools")
             CMD_UPDATE="echo 'DNF nao precisa de update separado.'"
             CMD_INSTALL="dnf install -y"
             CMD_GROUP_INSTALL="dnf groupinstall -y"
             ;;
         "arch" | "endeavouros" | "manjaro")
-            PACKAGES=("git" "dkms" "base-devel" "linux-headers")
+            # Adicionado "python-pythondialog"
+            PACKAGES=("git" "dkms" "base-devel" "linux-headers" "python-pythondialog")
             CMD_UPDATE="echo 'Pacman atualiza durante a instalacao.'"
             CMD_INSTALL="pacman -S --noconfirm"
             ;;
         *)
-            show_message "?? Distribuicao '$OS' nao suportada."; exit 1 ;;
+            show_message "?? Distribuicao da familia '$OS' nao suportada."; exit 1 ;;
     esac
 
-    # --- NOVO BLOCO DE INSTALAÇÃO COM BARRA DE PROGRESSO DETALHADA ---
-    
-    TOTAL_STEPS=$((${#PACKAGES[@]} + 1)) # +1 para a etapa de update
+    # Bloco de instalação com barra de progresso
+    TOTAL_STEPS=$((${#PACKAGES[@]} + 1))
     CURRENT_STEP=0
-
     (
-        # Etapa 1: Update
-        ((CURRENT_STEP++))
-        PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS))
-        echo $PERCENTAGE
-        echo "XXX"
-        echo "Etapa 1: Atualizando a lista de pacotes..."
-        echo "XXX"
+        ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+        echo $PERCENTAGE; echo "XXX"; echo "Etapa 1: Atualizando lista de pacotes..."; echo "XXX"
         eval $CMD_UPDATE > "$LOG_FILE" 2>&1
         
-        # Loop para instalar cada pacote individualmente
         for pkg in "${PACKAGES[@]}"; do
-            ((CURRENT_STEP++))
-            PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS))
-            echo $PERCENTAGE
-            echo "XXX"
-            echo "Etapa 2: Instalando - $pkg ($CURRENT_STEP de $TOTAL_STEPS)"
-            echo "XXX"
-
+            ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS)); PKG_NUM=$((CURRENT_STEP - 1))
+            echo $PERCENTAGE; echo "XXX"; echo "Etapa 2: Instalando Pacotes"; echo "Instalando: $pkg ($PKG_NUM de ${#PACKAGES[@]})"; echo "XXX"
             if [[ "$pkg" == "Development Tools" && -n "$CMD_GROUP_INSTALL" ]]; then
                 eval "$CMD_GROUP_INSTALL \"$pkg\"" >> "$LOG_FILE" 2>&1
             else
                 eval "$CMD_INSTALL $pkg" >> "$LOG_FILE" 2>&1
             fi
-
-            if [ $? -ne 0 ]; then
-                echo 1 > /tmp/mei-git-status.txt; exit;
-            fi
-            sleep 0.5 # Pequena pausa para o usuário poder ler
+            if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
+            sleep 0.5
         done
         
         echo 100; echo "XXX"; echo "Finalizando..."; echo "XXX"; sleep 1
         echo 0 > /tmp/mei-git-status.txt
+    ) | dialog --title "Instalando Dependencias para '$OS_NAME'" --gauge "Iniciando..." 12 80 0
 
-    ) | dialog --title "Instalando Dependencias para '$OS'" --gauge "Iniciando..." 10 75 0
-
-    FINAL_STATUS=$(cat /tmp/mei-git-status.txt)
-    rm /tmp/mei-git-status.txt
-
+    FINAL_STATUS=$(cat /tmp/mei-git-status.txt); rm /tmp/mei-git-status.txt
     if [ $FINAL_STATUS -ne 0 ]; then
-        show_message "?? Falha na instalacao de um dos pacotes. Verifique o log em $LOG_FILE."
-        exit 1
-    fi
+        show_message "?? Falha na instalacao. Verifique o log em $LOG_FILE."; exit 1; fi
 
-    # Mensagem final de sucesso
-    FINAL_CMD="ln -sf \"\$(pwd)/mei_git\" /usr/local/bin/mei-git"
+    FINAL_CMD="ln -sf \"\$(pwd)/mei-git\" /usr/local/bin/mei-git"
     show_message "?? Dependencias instaladas com sucesso!"
     
     clear
@@ -143,9 +127,7 @@ main() {
     echo "?? Setup concluido com sucesso!"
     echo ""
     echo "Para criar o comando global, copie e cole o comando abaixo:"
-    echo ""
-    echo -e "\033[1;32msudo $FINAL_CMD\033[0m"
-    echo ""
+    echo ""; echo -e "\033[1;32msudo $FINAL_CMD\033[0m"; echo ""
     echo "=================================================================="
 }
 
