@@ -3,7 +3,7 @@
 <div align="center">
   <br />
   <p>
-    <a href="https://github.com/Echiiiro453/mei-git"><img src="https://imgur.com/DGVkhmq" width="400" alt="mei-git-logo" /></a>
+    <a href="https://github.com/Echiiiro453/mei-git"><img src="./assets/logo.png" width="400" alt="mei-git-logo" /></a>
   </p>
   <br />
   <p>
@@ -99,7 +99,7 @@ Se um driver compatível for encontrado, a instalação começará automaticamen
 
 ```
 mei-git/
-├── mei_git.py      # Script principal (CLI)
+├── mei_git      # Script principal (CLI)
 ├── drivers.json    # Banco de dados com receitas de instalação
 ├── setup.sh        # Script para instalar dependências
 └── README.md       # Esta documentação
