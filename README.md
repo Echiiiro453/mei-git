@@ -66,7 +66,7 @@ chmod +x setup.sh
 sudo ./setup.sh
 
 # 3. Crie o comando global
-sudo ln -sf "$(pwd)/mei_git.py" /usr/local/bin/mei-git
+sudo ln -sf "$(pwd)/mei_git" /usr/local/bin/mei-git
 ```
 
 Pronto! Agora o comando `mei-git` está disponível em todo o sistema.  
