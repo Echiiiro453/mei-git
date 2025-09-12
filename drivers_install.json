@@ -1,106 +1,56 @@
 {
   "wifi": {
     "Realtek_RTL8811AU_RTL8812AU_AC_Series": {
-      "device_ids": ["0bda:8812","0bda:a811","0bda:881a","2357:0101","2357:0103","0bda:0811","2357:011e"],
+      "device_ids": ["0bda:8812", "0bda:a811", "0bda:881a", "2357:0101", "2357:0103", "0bda:0811", "2357:011e"],
       "type": "git",
-      "repo": [
-        "https://github.com/aircrack-ng/rtl8812au.git",
-        "https://github.com/diederikdehaas/rtl8812AU",
-        "https://github.com/morrownr/8812au-20210820",
-        "https://github.com/svpcom/rtl8812au",
-        "https://github.com/kelebek333/rtl8812au"
-      ],
+      "repo": "https://github.com/aircrack-ng/rtl8812au.git",
       "module": "8812au",
-      "dependencies": ["dkms","build-essential","linux-headers-$(uname -r)"],
+      "dependencies": ["dkms", "build-essential", "linux-headers-$(uname -r)"],
       "build_steps": ["sudo make dkms_install"],
       "comment": "Driver DKMS para adaptadores Wi-Fi AC potentes (TP-Link T4U, T2U, Alfa, etc)."
     },
     "Realtek_RTL8821CE_PCIe": {
       "device_ids": ["10ec:c821"],
       "type": "git",
-      "repo": [
-        "https://github.com/tomaspinho/rtl8821ce.git",
-        "https://github.com/onprem/rtl8821ce",
-        "https://github.com/shubham151/rtl8821ce",
-        "https://github.com/kelebek333/rtl8821ce"
-      ],
+      "repo": "https://github.com/tomaspinho/rtl8821ce.git",
       "module": "8821ce",
-      "dependencies": ["dkms","git","build-essential","linux-headers-$(uname -r)"],
+      "dependencies": ["dkms", "git", "build-essential", "linux-headers-$(uname -r)"],
       "build_steps": ["sudo ./dkms-install.sh"],
       "comment": "Driver DKMS para o popular chip Wi-Fi/Bluetooth RTL8821CE encontrado em notebooks."
     },
     "Realtek_RTL8723DE_PCIe": {
       "device_ids": ["10ec:d723"],
       "type": "git",
-      "repo": [
-        "https://github.com/lwfinger/rtw88.git",
-        "https://github.com/rtlwifi-linux/rtw88_8723de",
-        "https://github.com/smlinux/rtl8723de",
-        "https://github.com/kelebek333/rtl8723de"
-      ],
+      "repo": "https://github.com/lwfinger/rtw88.git",
       "module": "rtw88_8723de",
-      "dependencies": ["make","gcc","linux-headers-$(uname -r)","git","dkms"],
-      "build_steps": ["sudo make","sudo make install"],
+      "dependencies": ["make", "gcc", "linux-headers-$(uname -r)", "git", "dkms"],
+      "build_steps": ["sudo make", "sudo make install"],
       "comment": "Driver da comunidade para o chip Wi-Fi RTL8723DE, comum em notebooks HP e Lenovo."
     },
-    "Intel_Wi-Fi_6E_AX200_AX201_AX203": {
-      "device_ids": ["8086:2723","8086:2725","8086:2727"],
+    "Broadcom_STA_Proprietary_PCIe": {
+      "device_ids": ["14e4:43a0", "14e4:43b1", "14e4:4365", "14e4:4727", "14e4:4315", "14e4:4358", "14e4:4359"],
+      "module": "wl",
       "type": "apt",
-      "package": "iwlwifi",
-      "dependencies": ["linux-firmware","iwlwifi"],
-      "comment": "Driver open-source para chips Intel Wi-Fi 6E AX200, AX201 e AX203. Requer kernel 5.10 ou superior."
+      "package": "broadcom-sta-dkms",
+      "dependencies": ["broadcom-sta-dkms"],
+      "comment": "Driver proprietário da Broadcom (wl) para muitos notebooks (Dell, HP, Apple) que não funcionam com os drivers open-source."
     },
-    "Intel_Wi-Fi_6E_AX210_AX211_AX411": {
-      "device_ids": ["8086:2726","8086:2727","8086:2728"],
+    "MediaTek_MT7630e_Legacy": {
+      "device_ids": ["14c3:7630"],
       "type": "git",
-      "repo": "https://github.com/intel/iwlwifi.git",
-      "module": "iwlwifi",
-      "dependencies": ["linux-firmware","iwlwifi"],
-      "comment": "Driver open-source para chips Intel Wi-Fi 6E AX210, AX211 e AX411. Requer kernel 5.10 ou superior."
-    },
-    "Intel_Wi-Fi_5_8265_8260_7265": {
-      "device_ids": ["8086:24fd","8086:24f3","8086:095a","8086:095b","8086:08b1"],
-      "type": "apt",
-      "package": "iwlwifi",
-      "dependencies": ["linux-firmware","iwlwifi"],
-      "comment": "Drivers Intel Wi-Fi 5 para notebooks antigos e intermediários. Compatível com kernels 4.15 ou superior."
-    },
-    "Intel_Wi-Fi_4_3165_3168": {
-      "device_ids": ["8086:08b3","8086:24fb"],
-      "type": "apt",
-      "package": "iwlwifi",
-      "dependencies": ["linux-firmware","iwlwifi"],
-      "comment": "Drivers Intel Wi-Fi 4, chips mais antigos encontrados em laptops antigos."
-    },
-    "MediaTek_MT7630_MT7632_MT7612": {
-      "device_ids": ["14c3:7630","14c3:7632","14c3:7612"],
-      "type": "git",
-      "repo": "https://github.com/ulli-kroll/mt7630.git",
+      "repo": "https://github.com/neurobin/MT7630E.git",
       "module": "mt7630e",
-      "dependencies": ["mt76","linux-firmware"],
-      "comment": "Driver para chips Wi-Fi MediaTek MT7630, MT7632 e MT7612, usados em notebooks mais antigos."
+      "dependencies": ["build-essential", "linux-headers-$(uname -r)", "git"],
+      "build_steps": ["sudo make", "sudo make install"],
+      "comment": "Receita para o chip Wi-Fi/Bluetooth mais antigo MT7630e, que exige driver manual."
     },
-    "MediaTek_MT7921_MT7922_MT7925": {
-      "device_ids": ["14c3:7921","14c3:7922","14c3:7925"],
-      "type": "git",
-      "repo": "https://github.com/openwrt/mt76.git",
+    "MediaTek_Modern_Firmware": {
+      "device_ids": ["14c3:7961", "14c3:7922"],
       "module": "mt7921e",
-      "dependencies": ["mt76","linux-firmware"],
-      "comment": "Driver open-source para chips Wi-Fi MediaTek MT7921, MT7922 e MT7925. Requer kernel 5.10 ou superior."
-    }
-  },
-  "ethernet": {
-    "Realtek_R8168_Gigabit": {
-      "device_ids": ["10ec:8168"],
-      "type": "git",
-      "repo": [
-        "https://github.com/mtorromeo/r8168.git",
-        "https://github.com/airium/Realtek-PCIe-GBE-NIC-Driver"
-      ],
-      "module": "r8168",
-      "dependencies": ["dkms","build-essential","linux-headers-$(uname -r)"],
-      "build_steps": ["sudo ./autorun.sh"],
-      "comment": "Driver oficial da Realtek, frequentemente mais estável que o do kernel (r8169) para placas Gigabit."
+      "type": "apt",
+      "package": "linux-firmware",
+      "dependencies": ["linux-firmware"],
+      "comment": "Garante que o firmware mais recente para chips Wi-Fi 6 (MT7921/MT7922) esteja instalado."
     }
   },
   "video": {
@@ -110,35 +60,18 @@
       "type": "apt",
       "package": "nvidia-driver",
       "dependencies": ["nvidia-driver"],
-      "repo": ["https://github.com/NVIDIA/open-gpu-kernel-modules"],
-      "comment": "Driver proprietário da NVIDIA para melhor performance em jogos e produtividade. Instala via gerenciador de pacotes."
-    },
-    "Intel_Arc_Series": {
-      "device_ids": ["8086:0b80","8086:0b81","8086:0b82","8086:0b83"],
-      "module": "i915",
-      "type": "apt",
-      "package": "intel-graphics-compiler",
-      "dependencies": ["intel-graphics-compiler"],
-      "repo": ["https://www.intel.com/content/www/us/en/download/747008/intel-arc-graphics-driver-ubuntu.html"],
-      "comment": "Drivers para placas de vídeo Intel Arc, incluindo A380, A580, A750, A770 e B580. Requer kernel 6.11 ou superior e Mesa 24.2.x."
-    },
-    "AMD_Radeon_Series": {
-      "device_ids": ["1002:67df","1002:67e0","1002:67e1","1002:67e2"],
-      "module": "amdgpu",
-      "type": "apt",
-      "package": "xserver-xorg-video-amdgpu",
-      "dependencies": ["xserver-xorg-video-amdgpu"],
-      "repo": ["https://www.amd.com/en/support/download/linux-drivers.html"],
-      "comment": "Driver open-source para placas de vídeo AMD Radeon, incluindo séries RX 5000, 6000 e 7000."
+      "comment": "Driver proprietário da NVIDIA para melhor performance em jogos e produtividade."
     }
   },
-  "audio": {
-    "Intel_Sound_Open_Firmware": {
-      "device_ids": ["8086:9dc8","8086:a0c8","8086:34c8","8086:38c8"],
-      "type": "apt",
-      "package": "firmware-sof-signed",
-      "dependencies": ["firmware-sof-signed"],
-      "comment": "Driver para áudio em chips Intel modernos, necessário para funcionamento em notebooks recentes."
+  "ethernet": {
+    "Realtek_R8168_Gigabit": {
+      "device_ids": ["10ec:8168"],
+      "type": "git",
+      "repo": "https://github.com/mtorromeo/r8168.git",
+      "module": "r8168",
+      "dependencies": ["dkms", "build-essential", "linux-headers-$(uname -r)"],
+      "build_steps": ["sudo ./autorun.sh"],
+      "comment": "Driver oficial da Realtek, frequentemente mais estável que o do kernel (r8169)."
     }
   },
   "printer": {
@@ -146,33 +79,34 @@
       "device_ids": ["03f0:"],
       "type": "shell",
       "module": "hplip",
-      "dependencies": ["hplip"],
+      "dependencies": ["hplip-gui"],
       "build_steps": ["sudo hp-plugin -i"],
-      "repo": ["https://github.com/OpenPrinting/hplip-printer-app"],
-      "comment": "Instala o plugin binário proprietário necessário para a funcionalidade completa (como scanner) de muitas impressoras HP."
+      "comment": "Instala o plugin binário proprietário para funcionalidade completa (scanner) de impressoras HP."
     },
     "Brother_Scanner_Drivers": {
       "device_ids": ["04f9:"],
       "type": "apt",
       "package": "brscan4",
-      "dependencies": ["brscan4","libsane","python","sane-utils"],
-      "repo": [
-        "https://github.com/hbldh/brotherscan",
-        "https://github.com/dmikushin/brscan",
-        "https://github.com/PhilippMundhenk/BrotherScannerDocker",
-        "https://github.com/carloshm-experiments/brother-scan"
-      ],
+      "dependencies": ["brscan4"],
       "comment": "Driver genérico para scanners de impressoras multifuncionais da Brother."
+    }
+  },
+  "audio": {
+    "Intel_SoundOpenFirmware": {
+      "device_ids": ["8086:9dc8", "8086:a0c8", "8086:34c8", "8086:38c8", "8086:4b55", "8086:4b58"],
+      "type": "apt",
+      "package": "firmware-sof-signed",
+      "dependencies": ["firmware-sof-signed"],
+      "comment": "Instala o 'Sound Open Firmware', necessário para o áudio em notebooks modernos da Intel."
     }
   },
   "bluetooth": {
     "Common_Bluetooth_Firmware": {
-      "device_ids": ["0a5c:","0bda:","8087:"],
+      "device_ids": ["0a12:0001", "0a5c:", "0bda:", "8087:"],
       "type": "apt",
-      "package": "bluez-firmware",
-      "dependencies": ["bluez-firmware","firmware-realtek","firmware-atheros"],
-      "repo": ["https://github.com/howtoedittv/broadcom-wl-easy"],
-      "comment": "Instala pacotes de firmware comuns que resolvem problemas com adaptadores Bluetooth da Broadcom, Realtek, Atheros e Intel."
+      "package": "linux-firmware",
+      "dependencies": ["linux-firmware", "firmware-realtek", "firmware-brcm80211", "firmware-atheros"],
+      "comment": "Instala um conjunto de pacotes de firmware que resolve a maioria dos problemas com adaptadores Bluetooth."
     }
   }
 }
