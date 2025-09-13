@@ -1,23 +1,23 @@
 #!/bin/bash
 
-# setup.sh - v5.9 - Corrige a instalaÁ„o do kernel-devel em sistemas Fedora/RHEL
+# setup.sh - v5.9 - Corrige a falta da depend√™ncia python3-dialog
 
-# Garante que o script est· sendo executado como root (com sudo)
+# Garante que o script est√° sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
-  echo "?? Erro: Este script precisa ser executado com privilegios de root."
+  echo "‚ùå Erro: Este script precisa ser executado com privilegios de root."
   echo "   Por favor, rode com: sudo ./setup.sh"
   exit 1
 fi
 
-# ForÁa o locale para UTF-8 para m·xima compatibilidade
+# For√ßa o locale para UTF-8 para m√°xima compatibilidade
 export LANG=C.UTF-8
 LOG_FILE="/tmp/mei-git-setup.log"
 >"$LOG_FILE" # Limpa o log antigo
 
-# --- FunÁıes de Interface ---
+# --- Fun√ß√µes de Interface ---
 install_dialog_if_missing() {
     if ! command -v dialog &> /dev/null; then
-        echo "???? Pacote 'dialog' nao encontrado. Instalando..."
+        echo "üì¶ Pacote 'dialog' nao encontrado. Instalando..."
         export DEBIAN_FRONTEND=noninteractive
         if command -v apt-get &> /dev/null; then
             apt-get update -qq && apt-get install -y -qq dialog
@@ -48,7 +48,7 @@ ask_yes_no() {
     fi
 }
 
-# --- LÛgica Principal ---
+# --- L√≥gica Principal ---
 main() {
     install_dialog_if_missing
 
@@ -60,35 +60,38 @@ main() {
         show_message "Instalacao cancelada pelo usuario."; exit 0; fi
 
     if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID_LIKE; OS_NAME=$ID; else
-        show_message "?? Nao foi possivel detectar a distribuicao."; exit 1; fi
+        show_message "‚ùå Nao foi possivel detectar a distribuicao."; exit 1; fi
     
     if [ -z "$OS" ]; then
         OS=$OS_NAME
     fi
 
+    # Define pacotes e comandos baseados na fam√≠lia da distro
     case "$OS" in
         "debian" | "ubuntu" | "deepin" | "pop" | "mx")
-            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)")
+            # Adicionado "python3-dialog"
+            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)" "python3-dialog")
             CMD_UPDATE="apt-get update"
             CMD_INSTALL="apt-get install -y"
             ;;
         "fedora" | "rhel" | "centos")
-            # --- CORRE«√O APLICADA AQUI ---
-            PACKAGES=("git" "dkms" "kernel-devel-$(uname -r)" "Development Tools")
+            # Adicionado "python3-dialog"
+            PACKAGES=("git" "dkms" "kernel-devel" "python3-dialog" "Development Tools")
             CMD_UPDATE="echo 'DNF nao precisa de update separado.'"
             CMD_INSTALL="dnf install -y"
             CMD_GROUP_INSTALL="dnf groupinstall -y"
             ;;
         "arch" | "endeavouros" | "manjaro")
-            PACKAGES=("git" "dkms" "base-devel" "linux-headers")
+            # Adicionado "python-pythondialog"
+            PACKAGES=("git" "dkms" "base-devel" "linux-headers" "python-pythondialog")
             CMD_UPDATE="echo 'Pacman atualiza durante a instalacao.'"
             CMD_INSTALL="pacman -S --noconfirm"
             ;;
         *)
-            show_message "?? Distribuicao da familia '$OS' nao suportada."; exit 1 ;;
+            show_message "‚ùå Distribuicao da familia '$OS' nao suportada."; exit 1 ;;
     esac
 
-    # Bloco de instalaÁ„o com barra de progresso (continua o mesmo)
+    # Bloco de instala√ß√£o com barra de progresso
     TOTAL_STEPS=$((${#PACKAGES[@]} + 1))
     CURRENT_STEP=0
     (
@@ -114,14 +117,14 @@ main() {
 
     FINAL_STATUS=$(cat /tmp/mei-git-status.txt); rm /tmp/mei-git-status.txt
     if [ $FINAL_STATUS -ne 0 ]; then
-        show_message "?? Falha na instalacao. Verifique o log em $LOG_FILE."; exit 1; fi
+        show_message "‚ùå Falha na instalacao. Verifique o log em $LOG_FILE."; exit 1; fi
 
     FINAL_CMD="ln -sf \"\$(pwd)/mei-git\" /usr/local/bin/mei-git"
-    show_message "?? Dependencias instaladas com sucesso!"
+    show_message "‚úÖ Dependencias instaladas com sucesso!"
     
     clear
     echo "=================================================================="
-    echo "?? Setup concluido com sucesso!"
+    echo "‚úÖ Setup concluido com sucesso!"
     echo ""
     echo "Para criar o comando global, copie e cole o comando abaixo:"
     echo ""; echo -e "\033[1;32msudo $FINAL_CMD\033[0m"; echo ""
