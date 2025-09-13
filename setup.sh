@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setup.sh - v6.7 - Interface Híbrida para Arch Linux
+# setup.sh - v6.8 - Adiciona --overwrite para resolver conflitos de arquivos no Arch
 
 # Garante que o script está sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
@@ -41,7 +41,6 @@ run_install_debian_family() {
     CMD_INSTALL="apt-get install -y"
     TOTAL_STEPS=$((${#PACKAGES[@]} + 1))
     CURRENT_STEP=0
-
     (
         ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS))
         echo $PERCENTAGE; echo "XXX"; echo "Etapa 1 de 2: Atualizando lista de pacotes..."; echo "XXX"
@@ -100,7 +99,9 @@ run_install_arch_family() {
     echo "== ETAPA 1: Sincronizando Pacotes (pacman -Syyu)"
     echo "=================================================================="
     
-    pacman -Syyu --noconfirm
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Adiciona --overwrite '*' para resolver conflitos de arquivos
+    pacman -Syyu --noconfirm --overwrite '*'
     
     if [ $? -ne 0 ]; then
         echo "?? Falha ao sincronizar os pacotes com o pacman."
@@ -110,6 +111,7 @@ run_install_arch_family() {
     echo "?? Sincronizacao concluida com sucesso!"
     sleep 2
 
+    # (O resto da função continua o mesmo)
     TOTAL_PACKAGES=${#PACKAGES[@]}
     (
         INSTALLED_COUNT=0
@@ -118,7 +120,7 @@ run_install_arch_family() {
             PROGRESS_TEXT="Etapa 2: Instalando dependencia - $pkg ($INSTALLED_COUNT de $TOTAL_PACKAGES)"
             echo $PERCENTAGE; echo "XXX"; echo "$PROGRESS_TEXT"; echo "XXX"
             
-            pacman -S --noconfirm --needed "$pkg" > /dev/null 2>&1
+            pacman -S --noconfirm --needed "$pkg" --overwrite '*' > /dev/null 2>&1
             if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
         done
         sleep 1
@@ -177,7 +179,7 @@ main() {
         echo "Para usar a interface gráfica do mei-git, instale-a manualmente."
         echo ""
     fi
-    FINAL_CMD="ln -sf \"\$(pwd)/mei_git\" /usr/local/bin/mei-git"
+    FINAL_CMD="ln -sf \"\$(pwd)/mei_git.py\" /usr/local/bin/mei-git"
     echo "Para criar o comando global, copie e cole o comando abaixo:"
     echo ""; echo -e "\033[1;32msudo $FINAL_CMD\033[0m"; echo ""
     echo "=================================================================="
