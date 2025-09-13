@@ -14,20 +14,101 @@ LOG_FILE="/tmp/mei-git-setup.log"
 >"$LOG_FILE"
 
 # --- Funções de Interface ---
-install_dialog_if_missing() { # ... (código omitido, continua o mesmo)
+install_dialog_if_missing() {
+    if ! command -v dialog &> /dev/null; then
+        echo "📦 Pacote 'dialog' nao encontrado. Instalando..."
+        export DEBIAN_FRONTEND=noninteractive
+        if command -v apt-get &> /dev/null; then
+            apt-get update -qq && apt-get install -y -qq dialog
+        elif command -v dnf &> /dev/null; then
+            dnf install -y dialog
+        elif command -v pacman &> /dev/null; then
+            pacman -S --noconfirm dialog
+        fi
+    fi
 }
-show_message() { # ... (código omitido, continua o mesmo)
+show_message() {
+    if command -v dialog &> /dev/null; then
+        dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 12 78
+    else
+        echo -e "\n$1\n"
+    fi
 }
-ask_yes_no() { # ... (código omitido, continua o mesmo)
+ask_yes_no() {
+    if command -v dialog &> /dev/null; then
+        dialog --title "Confirmacao" --cr-wrap --yesno "$1" 12 78
+        return $?
+    else
+        read -p "$1 [S/n] " choice
+        case "$choice" in
+            [sS][iI][mM]|[sS]|"") return 0 ;;
+            *) return 1 ;;
+        esac
+    fi
 }
 
-# --- NOVA E MELHORADA FUNÇÃO DE INSTALAÇÃO PARA ARCH ---
+# --- Funções de Instalação por Família ---
+
+run_install_debian_family() {
+    PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)" "python3-dialog")
+    CMD_UPDATE="apt-get update"
+    CMD_INSTALL="apt-get install -y"
+    TOTAL_STEPS=$((${#PACKAGES[@]} + 1))
+    CURRENT_STEP=0
+
+    (
+        ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+        echo $PERCENTAGE; echo "XXX"; echo "Etapa 1 de 2: Atualizando lista de pacotes..."; echo "XXX"
+        eval $CMD_UPDATE > "$LOG_FILE" 2>&1
+        
+        for pkg in "${PACKAGES[@]}"; do
+            ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS)); PKG_NUM=$((CURRENT_STEP - 1))
+            PROGRESS_TEXT="Etapa 2 de 2: Instalando $pkg ($PKG_NUM de ${#PACKAGES[@]})"
+            echo $PERCENTAGE; echo "XXX"; echo "$PROGRESS_TEXT"; echo "XXX"
+            eval "$CMD_INSTALL $pkg" >> "$LOG_FILE" 2>&1
+            if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
+            sleep 0.5
+        done
+        
+        echo 100; echo "XXX"; echo "Finalizando..."; echo "XXX"; sleep 1
+        echo 0 > /tmp/mei-git-status.txt
+    ) | dialog --title "Instalando para Familia Debian/Ubuntu" --gauge "Iniciando..." 12 80 0
+}
+
+run_install_fedora_family() {
+    PACKAGES=("git" "dkms" "kernel-devel-$(uname -r)" "python3-dialog" "Development Tools")
+    CMD_UPDATE="echo 'DNF nao precisa de update separado.'"
+    CMD_INSTALL="dnf install -y"
+    CMD_GROUP_INSTALL="dnf groupinstall -y"
+    TOTAL_STEPS=$((${#PACKAGES[@]} + 1))
+    CURRENT_STEP=0
+    (
+        ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS))
+        echo $PERCENTAGE; echo "XXX"; echo "Etapa 1 de 2: Verificando DNF..."; echo "XXX"
+        eval $CMD_UPDATE > "$LOG_FILE" 2>&1
+        
+        for pkg in "${PACKAGES[@]}"; do
+            ((CURRENT_STEP++)); PERCENTAGE=$((CURRENT_STEP * 100 / TOTAL_STEPS)); PKG_NUM=$((CURRENT_STEP - 1))
+            PROGRESS_TEXT="Etapa 2 de 2: Instalando $pkg ($PKG_NUM de ${#PACKAGES[@]})"
+            echo $PERCENTAGE; echo "XXX"; echo "$PROGRESS_TEXT"; echo "XXX"
+            if [[ "$pkg" == "Development Tools" ]]; then
+                eval "$CMD_GROUP_INSTALL \"$pkg\"" >> "$LOG_FILE" 2>&1
+            else
+                eval "$CMD_INSTALL $pkg" >> "$LOG_FILE" 2>&1
+            fi
+            if [ $? -ne 0 ]; then echo 1 > /tmp/mei-git-status.txt; exit; fi
+            sleep 0.5
+        done
+        
+        echo 100; echo "XXX"; echo "Finalizando..."; echo "XXX"; sleep 1
+        echo 0 > /tmp/mei-git-status.txt
+    ) | dialog --title "Instalando para Familia Fedora/RHEL" --gauge "Iniciando..." 12 80 0
+}
+
 run_install_arch_family() {
-    # Lista de pacotes
     OFFICIAL_PACKAGES=("git" "dkms" "base-devel" "linux-headers" "dialog")
     AUR_PACKAGES=("python-pythondialog")
     
-    # --- ETAPA 1: SINCRONIZAÇÃO E ATUALIZAÇÃO DO SISTEMA ---
     SYNC_COMMAND="pacman -Syyu --noconfirm"
     show_message "A primeira etapa e sincronizar e atualizar o sistema com o Pacman. Isso pode levar alguns minutos."
     
@@ -42,7 +123,6 @@ run_install_arch_family() {
         exit 1
     fi
 
-    # --- ETAPA 2: INSTALAÇÃO DAS DEPENDÊNCIAS ---
     TOTAL_PACKAGES=${#OFFICIAL_PACKAGES[@]}
     INSTALLED_COUNT=0
     (
@@ -62,13 +142,11 @@ run_install_arch_family() {
     if [ "$FINAL_STATUS" != "0" ]; then
         show_message "❌ Falha na instalacao de um dos pacotes oficiais."; exit 1; fi
 
-    # --- ETAPA 3: INSTALAÇÃO DO AUR ---
     if command -v yay &> /dev/null; then
         if ask_yes_no "Dependencia '${AUR_PACKAGES[0]}' do AUR encontrada. Deseja instalar com 'yay'?"; then
             sudo -u $SUDO_USER yay -S --noconfirm "${AUR_PACKAGES[@]}"
         fi
     else
-        # Define a variável global para ser usada na mensagem final
         declare -g YAY_MISSING_GLOBAL=true
     fi
 }
@@ -85,13 +163,13 @@ main() {
 
     case "$OS" in
         "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
-            # A lógica para Debian-based...
+            run_install_debian_family
             ;;
         "fedora" | "rhel" | "centos")
-            # A lógica para Fedora-based...
+            run_install_fedora_family
             ;;
         "arch" | "endeavouros" | "manjaro")
-            run_install_arch_family # Chama a nova função super robusta para Arch
+            run_install_arch_family
             ;;
         *)
             show_message "❌ Distribuicao '$OS' nao suportada."; exit 1 ;;
@@ -107,7 +185,7 @@ main() {
         echo "Para usar a interface grafica do mei-git, instale-a manualmente."
         echo ""
     fi
-    FINAL_CMD="ln -sf \"\$(pwd)/mei_git\" /usr/local/bin/mei-git"
+    FINAL_CMD="ln -sf \"\$(pwd)/mei_git.py\" /usr/local/bin/mei-git"
     echo "Para criar o comando global, copie e cole o comando abaixo:"
     echo ""; echo -e "\033[1;32msudo $FINAL_CMD\033[0m"; echo ""
     echo "=================================================================="
