@@ -1,109 +1,143 @@
 #!/bin/bash
 
-# setup.sh - Instala dependÃªncias essenciais para o MEI Git
+# setup.sh - v6.7 - Instalador universal para MEI Git
+# Com suporte a Debian/Ubuntu, Fedora/RHEL, Arch/Manjaro/EndeavourOS, openSUSE
+# Inclui fix para python-pythondialog no Arch (AUR)
 
-echo "ðŸš€ Iniciando setup do MEI Git..."
+# --- Segurança: precisa de root ---
+if [ "$EUID" -ne 0 ]; then
+  echo "?? Erro: Este script precisa ser executado com privilégios de root."
+  echo "   Use: sudo ./setup.sh"
+  exit 1
+fi
 
-# FunÃ§Ã£o para detectar a distribuiÃ§Ã£o
-detect_distro() {
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        OS=$ID
-    else
-        echo "âŒ NÃ£o foi possÃ­vel detectar a distribuiÃ§Ã£o. Instale as dependÃªncias manualmente."
-        exit 1
-    fi
-}
+export LANG=C.UTF-8
+LOG_FILE="/tmp/mei-git-setup.log"
+> "$LOG_FILE"
 
-# FunÃ§Ã£o para perguntar sim/nÃ£o
-ask_yes_no() {
-    local prompt="$1"
-    read -p "$prompt (s/n): " yn
-    case $yn in
-        [Ss]*) return 0 ;;
-        *) return 1 ;;
-    esac
-}
-
-# InstalaÃ§Ã£o para Debian/Ubuntu
-run_install_debian_family() {
-    PACKAGES="git dkms build-essential linux-headers-$(uname -r) python3-dialog"
-    sudo apt-get update
-    sudo apt-get install -y $PACKAGES
-}
-
-# InstalaÃ§Ã£o para Fedora/RHEL/CentOS
-run_install_fedora_family() {
-    PACKAGES="git dkms kernel-devel kernel-headers python3-dialog"
-    sudo dnf install -y $PACKAGES
-}
-
-# InstalaÃ§Ã£o para openSUSE
-run_install_opensuse_family() {
-    PACKAGES="git dkms kernel-devel kernel-headers python3-dialog"
-    sudo zypper install -y $PACKAGES
-}
-
-# InstalaÃ§Ã£o para Arch/Manjaro
-run_install_arch_family() {
-    OFFICIAL_PACKAGES="git dkms base-devel linux-headers dialog"
-    AUR_PACKAGE="python-pythondialog"
-    COMMAND="pacman -Syu --noconfirm --needed $OFFICIAL_PACKAGES"
-
-    echo "ðŸ“¦ Instalando pacotes oficiais: $OFFICIAL_PACKAGES"
-    eval $COMMAND
-    INSTALL_STATUS=$?
-    echo $INSTALL_STATUS > /tmp/mei-git-status.txt
-
-    # Agora cuida do pacote do AUR
-    if ! pacman -Q "$AUR_PACKAGE" &> /dev/null; then
-        if command -v yay &> /dev/null; then
-            if ask_yes_no "A dependÃªncia '$AUR_PACKAGE' do AUR Ã© necessÃ¡ria. Deseja instalar com 'yay'?"; then
-                sudo -u $SUDO_USER yay -S --noconfirm "$AUR_PACKAGE"
-            fi
-        else
-            if ask_yes_no "O pacote '$AUR_PACKAGE' precisa do AUR. Deseja instalar o helper 'yay' automaticamente?"; then
-                sudo -u $SUDO_USER bash -c "
-                    git clone https://aur.archlinux.org/yay.git /tmp/yay &&
-                    cd /tmp/yay &&
-                    makepkg -si --noconfirm
-                "
-                if command -v yay &> /dev/null; then
-                    sudo -u $SUDO_USER yay -S --noconfirm "$AUR_PACKAGE"
-                fi
-            else
-                declare -g YAY_MISSING_GLOBAL=true
-            fi
+# --- Funções auxiliares ---
+install_dialog_if_missing() {
+    if ! command -v dialog &>/dev/null; then
+        echo "???? Instalando pacote 'dialog'..."
+        if command -v apt-get &>/dev/null; then
+            apt-get update -qq && apt-get install -y -qq dialog
+        elif command -v dnf &>/dev/null; then
+            dnf install -y dialog
+        elif command -v pacman &>/dev/null; then
+            pacman -S --noconfirm dialog
+        elif command -v zypper &>/dev/null; then
+            zypper install -y dialog
         fi
     fi
 }
 
-# --- LÃ³gica Principal ---
-detect_distro
+show_message() {
+    if command -v dialog &>/dev/null; then
+        dialog --title "MEI Git Setup" --cr-wrap --msgbox "$1" 12 78
+    else
+        echo -e "\n$1\n"
+    fi
+}
 
-case "$OS" in
-    "ubuntu" | "debian" | "linuxmint")
-        run_install_debian_family
-        ;;
-    "fedora" | "rhel" | "centos")
-        run_install_fedora_family
-        ;;
-    "arch" | "manjaro")
-        run_install_arch_family
-        ;;
-    "opensuse-tumbleweed" | "opensuse-leap")
-        run_install_opensuse_family
-        ;;
-    *)
-        echo "âš ï¸ DistribuiÃ§Ã£o '$OS' nÃ£o suportada por este script."
-        echo "Por favor, instale manualmente: git dkms build-essential linux-headers python3-dialog"
-        ;;
-esac
+ask_yes_no() {
+    if command -v dialog &>/dev/null; then
+        dialog --title "Confirmação" --cr-wrap --yesno "$1" 12 78
+        return $?
+    else
+        read -p "$1 [S/n] " choice
+        case "$choice" in
+            [sS][iI][mM]|[sS]|"") return 0 ;;
+            *) return 1 ;;
+        esac
+    fi
+}
 
-if [ "$YAY_MISSING_GLOBAL" = true ]; then
-    echo "âš ï¸ O pacote 'python-pythondialog' nÃ£o foi instalado porque vocÃª recusou instalar o 'yay'."
-    echo "   Instale manualmente com: yay -S python-pythondialog"
-fi
+# --- Instalação por família ---
+run_install_debian_family() {
+    PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)" "python3-dialog")
+    apt-get update
+    apt-get install -y "${PACKAGES[@]}"
+}
 
-echo "âœ… Setup concluÃ­do! O MEI Git estÃ¡ pronto para ser usado."
-echo "   Use 'sudo ln -sf \$(pwd)/mei_git.py /usr/local/bin/mei-git' para criar o comando global."
+run_install_fedora_family() {
+    dnf install -y git dkms "kernel-devel-$(uname -r)" python3-dialog
+    dnf groupinstall -y "Development Tools"
+}
+
+run_install_arch_family() {
+    OFFICIAL_PACKAGES="git dkms base-devel linux-headers dialog"
+    AUR_PACKAGE="python-pythondialog"
+
+    echo "???? Instalando pacotes oficiais do Arch..."
+    pacman -Syu --noconfirm --needed $OFFICIAL_PACKAGES
+
+    # Verifica se python-pythondialog está instalado
+    if ! pacman -Q "$AUR_PACKAGE" &>/dev/null; then
+        echo "???? Pacote '$AUR_PACKAGE' não encontrado nos repositórios oficiais."
+        if command -v yay &>/dev/null; then
+            if ask_yes_no "Deseja instalar '$AUR_PACKAGE' do AUR com yay?"; then
+                sudo -u "$SUDO_USER" yay -S --noconfirm "$AUR_PACKAGE"
+            fi
+        else
+            echo "???? 'yay' não encontrado. Instale manualmente o pacote AUR:"
+            echo "   git clone https://aur.archlinux.org/$AUR_PACKAGE.git"
+            echo "   cd $AUR_PACKAGE && makepkg -si"
+        fi
+    fi
+}
+
+run_install_opensuse_family() {
+    zypper install -y git dkms make gcc kernel-devel python3-dialog
+}
+
+# --- Main ---
+main() {
+    install_dialog_if_missing
+    show_message "Bem-vindo ao instalador de dependências do MEI Git!"
+    if ! ask_yes_no "Deseja continuar a instalação?"; then
+        show_message "Instalação cancelada."
+        exit 0
+    fi
+
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        OS=$ID
+    else
+        show_message "?? Não foi possível detectar a distribuição."
+        exit 1
+    fi
+
+    echo "???? Detectado: $PRETTY_NAME"
+
+    case "$OS" in
+        # Debian/Ubuntu family
+        "ubuntu"|"debian"|"linuxmint"|"pop"|"zorin"|"deepin"|"mx"|"kali"|"neon")
+            run_install_debian_family
+            ;;
+        # Fedora/RHEL family
+        "fedora"|"rhel"|"centos"|"rocky"|"almalinux"|"clearos")
+            run_install_fedora_family
+            ;;
+        # Arch family
+        "arch"|"manjaro"|"endeavouros"|"garuda"|"arco")
+            run_install_arch_family
+            ;;
+        # openSUSE family
+        "opensuse-tumbleweed"|"opensuse-leap")
+            run_install_opensuse_family
+            ;;
+        *)
+            show_message "???? Distribuição '$OS' não suportada automaticamente.\n\
+Instale manualmente: git dkms build-essential (ou base-devel) linux-headers python3-dialog"
+            ;;
+    esac
+
+    echo "=================================================================="
+    echo "?? Setup concluído!"
+    echo ""
+    echo "Crie o comando global com:"
+    echo "   sudo ln -sf \"\$(pwd)/mei-git\" /usr/local/bin/mei-git"
+    echo "=================================================================="
+}
+
+main
