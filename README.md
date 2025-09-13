@@ -30,7 +30,6 @@
 
 ![Demonstração do MEI Git em ação](./assets/demonstracao.gif)
 
-> 🔔 **Importante:** Atualize o GIF acima para mostrar a nova interface TUI.
 
 ---
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setup.sh - v5.9 - Corrige a falta da dependência python3-dialog
+# setup.sh - v5.9 - Corrige a instalação do kernel-devel em sistemas Fedora/RHEL
 
 # Garante que o script está sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
@@ -66,24 +66,21 @@ main() {
         OS=$OS_NAME
     fi
 
-    # Define pacotes e comandos baseados na família da distro
     case "$OS" in
         "debian" | "ubuntu" | "deepin" | "pop" | "mx")
-            # Adicionado "python3-dialog"
-            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)" "python3-dialog")
+            PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)")
             CMD_UPDATE="apt-get update"
             CMD_INSTALL="apt-get install -y"
             ;;
         "fedora" | "rhel" | "centos")
-            # Adicionado "python3-dialog"
-            PACKAGES=("git" "dkms" "kernel-devel" "python3-dialog" "Development Tools")
+            # --- CORREÇÃO APLICADA AQUI ---
+            PACKAGES=("git" "dkms" "kernel-devel-$(uname -r)" "Development Tools")
             CMD_UPDATE="echo 'DNF nao precisa de update separado.'"
             CMD_INSTALL="dnf install -y"
             CMD_GROUP_INSTALL="dnf groupinstall -y"
             ;;
         "arch" | "endeavouros" | "manjaro")
-            # Adicionado "python-pythondialog"
-            PACKAGES=("git" "dkms" "base-devel" "linux-headers" "python-pythondialog")
+            PACKAGES=("git" "dkms" "base-devel" "linux-headers")
             CMD_UPDATE="echo 'Pacman atualiza durante a instalacao.'"
             CMD_INSTALL="pacman -S --noconfirm"
             ;;
@@ -91,7 +88,7 @@ main() {
             show_message "?? Distribuicao da familia '$OS' nao suportada."; exit 1 ;;
     esac
 
-    # Bloco de instalação com barra de progresso
+    # Bloco de instalação com barra de progresso (continua o mesmo)
     TOTAL_STEPS=$((${#PACKAGES[@]} + 1))
     CURRENT_STEP=0
     (

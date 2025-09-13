@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-# mei-git v2.4 - Implementação da instalação com TUI e barra de progresso
+# mei-git v2.5 - Script universal com detecção de caminho de dados
 
 import sys
 import os
@@ -10,6 +10,24 @@ import subprocess
 import re
 import shutil
 import tempfile
+
+# --- Bloco de Código Inteligente para Encontrar os Arquivos de Dados ---
+# O script descobre onde ele mesmo está localizado no sistema
+script_path = os.path.realpath(__file__)
+
+# Define os dois locais possíveis para os dados:
+# 1. O diretório local (para desenvolvimento, ex: ~/mei-git/)
+local_data_dir = os.path.dirname(script_path)
+# 2. O diretório de instalação padrão no sistema
+installed_data_dir = "/usr/share/mei-git"
+
+# Verifica se a versão instalada existe. Se sim, usa ela. Se não, usa a local.
+if os.path.isdir(installed_data_dir):
+    DATA_DIR = installed_data_dir
+else:
+    DATA_DIR = local_data_dir
+# --- Fim do Bloco de Código Inteligente ---
+
 
 # --- Configurações Iniciais ---
 try:
@@ -29,7 +47,6 @@ def run_cmd_logged(cmd):
     try:
         with open(LOG_FILE, "a", encoding='utf-8') as log:
             log.write(f"\n--- Executando: {cmd} ---\n")
-            # Usamos Popen para garantir que a saída seja capturada corretamente
             process = subprocess.Popen(cmd, shell=True, stdout=log, stderr=subprocess.STDOUT, text=True, bufsize=1)
             process.wait()
             return process.returncode == 0
@@ -39,10 +56,14 @@ def run_cmd_logged(cmd):
         return False
 
 def load_db(filename):
+    """Carrega um arquivo JSON do diretório de dados correto."""
+    # Constrói o caminho completo para o arquivo de dados usando a variável global DATA_DIR
+    full_path = os.path.join(DATA_DIR, filename)
     try:
-        with open(filename) as f: return json.load(f)
+        with open(full_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
     except FileNotFoundError:
-        if DIALOG_AVAILABLE: d.msgbox(f"❌ Erro: Arquivo '{filename}' não encontrado.")
+        if DIALOG_AVAILABLE: d.msgbox(f"❌ Erro: Arquivo '{full_path}' não encontrado.")
         return None
     except json.JSONDecodeError:
         if DIALOG_AVAILABLE: d.msgbox(f"❌ Erro: O arquivo '{filename}' tem um formato JSON inválido.")
@@ -189,9 +210,8 @@ def main_tui():
         else: break
     os.system('clear')
 
-# --- Modo CLI (Placeholder para futuras implementações) ---
+# --- Modo CLI (Placeholder) ---
 def main_cli(args):
-    """Controlador do modo de linha de comando."""
     print("Modo CLI nao implementado. Rode 'mei-git' sem argumentos para a interface grafica.")
 
 # --- Ponto de Entrada Principal ---
