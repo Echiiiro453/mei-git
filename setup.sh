@@ -2,9 +2,9 @@
 
 # setup.sh - v6.8 - Adiciona --overwrite para resolver conflitos de arquivos no Arch
 
-# Garante que o script est· sendo executado como root (com sudo)
+# Garante que o script est√° sendo executado como root (com sudo)
 if [ "$EUID" -ne 0 ]; then
-  echo "?? Erro: Este script precisa ser executado com privilegios de root."
+  echo "‚ùå Erro: Este script precisa ser executado com privilegios de root."
   echo "   Por favor, rode com: sudo ./setup.sh"
   exit 1
 fi
@@ -13,10 +13,10 @@ export LANG=C.UTF-8
 LOG_FILE="/tmp/mei-git-setup.log"
 >"$LOG_FILE"
 
-# --- FunÁıes de Interface ---
+# --- Fun√ß√µes de Interface ---
 install_dialog_if_missing(){
     if ! command -v dialog &> /dev/null; then
-        echo "???? Pacote 'dialog' nao encontrado. Instalando..."
+        echo "üì¶ Pacote 'dialog' nao encontrado. Instalando..."
         export DEBIAN_FRONTEND=noninteractive
         if command -v apt-get &> /dev/null; then apt-get update -qq && apt-get install -y -qq dialog
         elif command -v dnf &> /dev/null; then dnf install -y dialog
@@ -33,7 +33,7 @@ ask_yes_no() {
     else read -p "$1 [S/n] " choice; case "$choice" in [sS][iI][mM]|[sS]|"") return 0 ;; *) return 1 ;; esac; fi
 }
 
-# --- FunÁıes de InstalaÁ„o por FamÌlia ---
+# --- Fun√ß√µes de Instala√ß√£o por Fam√≠lia ---
 
 run_install_debian_family() {
     PACKAGES=("git" "dkms" "build-essential" "linux-headers-$(uname -r)" "python3-dialog")
@@ -99,19 +99,19 @@ run_install_arch_family() {
     echo "== ETAPA 1: Sincronizando Pacotes (pacman -Syyu)"
     echo "=================================================================="
     
-    # --- CORRE«√O APLICADA AQUI ---
+    # --- CORRE√á√ÉO APLICADA AQUI ---
     # Adiciona --overwrite '*' para resolver conflitos de arquivos
     pacman -Syyu --noconfirm --overwrite '*'
     
     if [ $? -ne 0 ]; then
-        echo "?? Falha ao sincronizar os pacotes com o pacman."
+        echo "‚ùå Falha ao sincronizar os pacotes com o pacman."
         read -p "Pressione Enter para sair."
         exit 1
     fi
-    echo "?? Sincronizacao concluida com sucesso!"
+    echo "‚úÖ Sincronizacao concluida com sucesso!"
     sleep 2
 
-    # (O resto da funÁ„o continua o mesmo)
+    # (O resto da fun√ß√£o continua o mesmo)
     TOTAL_PACKAGES=${#PACKAGES[@]}
     (
         INSTALLED_COUNT=0
@@ -141,7 +141,7 @@ run_install_arch_family() {
     fi
 }
 
-# --- LÛgica Principal ---
+# --- L√≥gica Principal ---
 main() {
     install_dialog_if_missing
     show_message "Bem-vindo ao instalador de dependencias do MEI Git!"
@@ -149,7 +149,7 @@ main() {
         show_message "Instalacao cancelada."; exit 0; fi
 
     if [ -f /etc/os-release ]; then . /etc/os-release; OS=$ID; else
-        show_message "?? Nao foi possivel detectar a distribuicao."; exit 1; fi
+        show_message "‚ùå Nao foi possivel detectar a distribuicao."; exit 1; fi
 
     case "$OS" in
         "ubuntu" | "debian" | "linuxmint" | "deepin" | "pop" | "mx")
@@ -162,21 +162,21 @@ main() {
             run_install_arch_family
             ;;
         *)
-            show_message "?? Distribuicao '$OS' nao suportada."; exit 1 ;;
+            show_message "‚ùå Distribuicao '$OS' nao suportada."; exit 1 ;;
     esac
     
     FINAL_STATUS=$(cat /tmp/mei-git-status.txt 2>/dev/null); rm /tmp/mei-git-status.txt 2>/dev/null
     if [ "$FINAL_STATUS" != "0" ]; then
-        show_message "?? Falha na instalacao de um dos pacotes."; exit 1;
+        show_message "‚ùå Falha na instalacao de um dos pacotes."; exit 1;
     fi
 
     clear
     echo "=================================================================="
-    echo "?? Setup concluÌdo!"
+    echo "‚úÖ Setup conclu√≠do!"
     echo ""
     if [ "$YAY_MISSING_GLOBAL" = true ]; then
-        echo -e "\033[1;33mATEN«√O:\033[0m A dependÍncia 'python-pythondialog' do AUR n„o foi instalada."
-        echo "Para usar a interface gr·fica do mei-git, instale-a manualmente."
+        echo -e "\033[1;33mATEN√á√ÉO:\033[0m A depend√™ncia 'python-pythondialog' do AUR n√£o foi instalada."
+        echo "Para usar a interface gr√°fica do mei-git, instale-a manualmente."
         echo ""
     fi
     FINAL_CMD="ln -sf \"\$(pwd)/mei_git.py\" /usr/local/bin/mei-git"
